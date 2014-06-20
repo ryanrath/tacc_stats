@@ -16,6 +16,7 @@ REMOTE_ID=/user/xdtas/.ssh/id_dsa_xdtas_xsede_cron
 REMOTE_LOGIN=xdtas@login2.ls4.tacc.utexas.edu
 REMOTE_HOSTFILE_PATH=/home1/0000/sge/tacc/hostfile_logs
 REMOTE_ACCOUNTING_PATH=/sge_common/default/accounting
+REMOTE_LARIAT_PATH=/scratch/projects/lariatData
 REMOTE_ARCHIVE_PATH=/scratch/projects/tacc_stats/archive
 
 # Local config settings:
@@ -106,6 +107,10 @@ mkdir -p ${LOCAL_HOSTFILE_PATH}
 cd ${LOCAL_HOSTFILE_PATH}
 echo "cd ${REMOTE_HOSTFILE_PATH} && find $(gentimedirlist) -print -depth | cpio -o" | ssh -i ${REMOTE_ID} -o ControlPath=${CONTROLPATH} ${REMOTE_LOGIN} "bash -s" | cpio -i -d
 cd -
+
+# Update lariat data
+loginfo "rsync lariat"
+rsync -v -t -r -e "${RSYNCRSH}" ${REMOTE_LOGIN}:${REMOTE_LARIAT_PATH} ${LOCAL_MIRROR_PATH} || true
 
 # Copy archive files
 loginfo "copy archive files"
