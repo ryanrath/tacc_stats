@@ -70,16 +70,12 @@ cd $archive
 tf=`mktemp`
 
 lfscmd=ls
-if which lfs > /dev/null;
-then
-    lfscmd="lfs ls"
-fi
 
 for dir in `$lfscmd`
 do
     if [ -d $dir ];
     then
-        filelist=`$lfscmd $dir | sort -r | head -7`
+        filelist=`$lfscmd $dir | sort -r | head -1`
         for file in ${filelist}
         do
 	        echo ${dir}/${file} >> $tf
@@ -105,7 +101,7 @@ loginfo "rsync accounting file"
 rsync -v -t -z -e "${RSYNCRSH}" ${REMOTE_LOGIN}:${REMOTE_ACCOUNTING_PATH} ${LOCAL_MIRROR_PATH}/accounting
 
 # Update hostfiles
-loginfo "cpi hostfiles"
+loginfo "cpio hostfiles"
 mkdir -p ${LOCAL_HOSTFILE_PATH}
 cd ${LOCAL_HOSTFILE_PATH}
 echo "cd ${REMOTE_HOSTFILE_PATH} && find $(gentimedirlist) -print -depth | cpio -o" | ssh -i ${REMOTE_ID} -o ControlPath=${CONTROLPATH} ${REMOTE_LOGIN} "bash -s" | cpio -i -d
