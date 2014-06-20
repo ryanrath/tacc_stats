@@ -569,10 +569,10 @@ class Job(object):
             j = e.index
             if e.is_event:
                 p = r = A[0, j] # Previous raw, rollover/baseline.
+                correction_factor = numpy.uint64(0)
                 # Rebase, check for rollover.
                 for i in range(0, m):
                     v = A[i, j]
-                    correction_factor = numpy.uint64(0)
                     if v < p:
                         # Looks like rollover.
                         if e.width:
@@ -592,7 +592,7 @@ class Job(object):
                             # and the reset happened at the start of the counting period.
                             # This happens with IB counters.
                             # A[i,j] = v + A[i-1,j] = v + v_(t-1) - r
-                            correction_factor = A[i-1,j]
+                            correction_factor += A[i-1,j]
                             r = 0 # base is now zero
                             if KEEP_EDITS:
                                 self.edit_flags.append("(time %d, host `%s', type `%s', dev `%s', key `%s')" %
