@@ -569,11 +569,11 @@ class Job(object):
             j = e.index
             if e.is_event:
                 p = r = A[0, j] # Previous raw, rollover/baseline.
-                correction_factor = numpy.uint64(0)
                 # Rebase, check for rollover.
                 for i in range(0, m):
                     v = A[i, j]
                     if v < p:
+                        fudged = False
                         # Looks like rollover.
                         if e.width:
                             trace("time %d, counter `%s', rollover prev %d, curr %d\n",
@@ -590,21 +590,27 @@ class Job(object):
                         elif (type_name == 'ib_ext' or type_name == 'ib_sw') or (type_name == 'cpu' and e.key == 'iowait'):
                             # We will assume a spurious reset, 
                             # and the reset happened at the start of the counting period.
-                            # This happens with IB counters.
-                            # A[i,j] = v + A[i-1,j] = v + v_(t-1) - r
-                            correction_factor += A[i-1,j]
-                            r = 0 # base is now zero
+                            # This happens with IB ext counters.
+                            #   A[i,j] = v + A[i-1,j] 
+                            # and
+                            #   A[i,j] = v - r
+                            # Therefore
+                            #   A[i-1,j] = -r 
+                            # or
+                            #          r = - A[i-1,j]
+                            r = numpy.uint64(0) - A[i-1,j] 
                             if KEEP_EDITS:
                                 self.edit_flags.append("(time %d, host `%s', type `%s', dev `%s', key `%s')" %
                                                    (self.times[i],host.name,type_name,dev_name,e.key))
+                            fudged = True
 
-                        if type_name not in ['ib', 'ib_ext'] and (correction_factor == numpy.uint64(0) ):
+                        if type_name not in ['ib', 'ib_ext'] and (fudged == False):
                             width = e.width if e.width else 64
                             if ( v - p ) % (2**width) > 2**(width-1):
                                 # This counter rolled more than half of its range
                                 self.logoverflow(host.name, type_name, dev_name, e.key)
 
-                    A[i, j] = v - r + correction_factor
+                    A[i, j] = v - r
                     p = v
             if e.mult:
                 for i in range(0, m):
