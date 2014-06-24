@@ -82,10 +82,6 @@ def createsummary(totalprocs, procid):
             outdb[resourcename].remove( {"_id": summary["acct"]["id"] } )
             #----------------------------------------------------------------------
 
-            # Add empty processed element to data so that the document size does not
-            # need to be changed when the doc is processed by the etl. 
-            summary['processed'] = { "ts": 0.0, "version": 0, "warnings": None, "errors": None }
-
             outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
 
             if outdb[resourcename].find_one( {"_id": summary["_id"]}, { "_id":1 } ) != None:
