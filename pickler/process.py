@@ -40,6 +40,7 @@ class RateCalculator:
 def createsummary(totalprocs, procid):
 
     sys.stderr.write("{} Processor {} of {} starting\n".format(datetime.datetime.utcnow().isoformat(), procid, totalprocs))
+    referencetime = int(time.time()) - ( 3 * 24 * 3600 ) 
 
     config = account.getconfig()
     dbconf = config['accountdatabase']
@@ -76,11 +77,10 @@ def createsummary(totalprocs, procid):
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'], bacct )
             summary = summarize.summarize(job, lariat)
 
-            #----------------------------------------------------------------------
-            # The following remove statement is to replace the legacy document data and
-            # Will be deleted once the database has been migrated.
-            outdb[resourcename].remove( {"_id": summary["acct"]["id"] } )
-            #----------------------------------------------------------------------
+            if summary['complete'] == False and summary["acct"]['end_time'] > referencetime:
+                # Do not mark incomplete jobs as done unless they are older than the
+                # reference time (which defaults to 3 days ago)
+                continue
 
             outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
 

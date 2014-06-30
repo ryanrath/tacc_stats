@@ -201,6 +201,23 @@ def summarize(j, lariatcache):
 
     summaryDict = {}
     summaryDict['Error'] = list(j.errors)
+    
+    # The tacc_stats source data is assumed complete if we have records with end markers
+    # for all hosts.
+    hostswithends = 0
+    for h,v in j.hosts.iteritems():
+        for mark in v.marks.iterkeys():
+            if mark.startswith("end"):
+                hostswithends += 1
+
+    if int(j.acct['nodes']) == hostswithends:
+        summaryDict['complete'] = True
+    else:
+        if j.acct['end_time'] - j.acct['start_time'] > 0:
+            summaryDict['complete'] = False
+        else:
+            # Allow zero-length jobs to have no statistics
+            summaryDict['complete'] = True
 
     metrics = None
     statsOk = True
@@ -474,7 +491,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.20"
+    summaryDict['summary_version'] = "0.9.21"
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']

@@ -165,6 +165,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         end_time = sys.argv[2]
     else:
-        end_time = int(time.time() - 2*24*60*60)
+        end_time = 9223372036854775807L
 
     ingest(config, end_time)
