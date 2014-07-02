@@ -197,6 +197,17 @@ def addmetrics(summary, overflows, device, interface, values):
 
     summary[device.replace(".","-")][interface.replace(".","-")] = data
 
+# Unfortunately, due to historical reasons, the type and content of the accounting
+# records differ for different resources. I have no idea why the data isn't put in 
+# normalised form.
+def getnumhosts(acct):
+    if 'nodes' in acct:
+        return int(acct['nodes'])
+    if 'nnodes' in acct:
+        return int(acct['nnodes'])
+    if 'slots' in acct:
+        return int(acct['slots']) / 12
+
 def summarize(j, lariatcache):
 
     summaryDict = {}
@@ -210,7 +221,7 @@ def summarize(j, lariatcache):
             if mark.startswith("end"):
                 hostswithends += 1
 
-    if int(j.acct['nodes']) == hostswithends:
+    if getnumhosts(j.acct) == hostswithends:
         summaryDict['complete'] = True
     else:
         if j.acct['end_time'] - j.acct['start_time'] > 0:
