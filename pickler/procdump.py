@@ -40,7 +40,8 @@ class ProcDump:
 
         allprocs = set()
         for procs in self.uidprocs.itervalues():
-            allprocs.update(procs)
+            for proc in procs:
+                allprocs.add( self.getcommand(proc) )
 
         return list(allprocs)
 

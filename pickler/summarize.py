@@ -513,6 +513,10 @@ def summarize(j, lariatcache):
     if len(summaryDict['Error']) == 0:
         del summaryDict['Error']
 
+    if "hostname" in j.acct and j.acct['hostname'] in j.hosts:
+        pl = j.hosts[j.acct['hostname']].procdump.getproclist()
+        if len(pl) > 0:
+            summaryDict['procDump'] = pl
 
     return summaryDict
 
