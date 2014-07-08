@@ -366,6 +366,8 @@ class Host(object):
                             tokens = line[1:].strip().split(" ")
                             if len(tokens) > 1 and tokens[0].strip() == "end":
                                 rec_jobid.add( tokens[1].strip() )
+                                if tokens[1].strip() == self.job.id:
+                                    self.marks[line[1:].strip()] = True
                             else:
                                 self.trace("file '%s' syntax error '%s'\n", file.name, line)
                         if self.job.id not in rec_jobid:
@@ -396,7 +398,8 @@ class Host(object):
                             self.times = [ rec_time ]
 
                         skip = False
-                    self.marks[mark] = True
+                    if skip == False:
+                        self.marks[mark] = True
                 #elif c == SF_COMMENT_CHAR:
                     #pass        
                 else:

@@ -457,9 +457,9 @@ def summarize(j, lariatcache):
 
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
+        summaryDict['cpuall'] = calculate_stats(totalcpus)
         if min(totalcpus) < 90.0:
             summaryDict['Error'].append("Corrupt CPU counters")
-            summaryDict['cpuall'] = calculate_stats(totalcpus)
         else:
             for interface, cdata in totals['cpu'].iteritems():
                 if interface != "all":
