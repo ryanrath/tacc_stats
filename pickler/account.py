@@ -130,9 +130,11 @@ def ingest(config, end_time, start_time = None):
     for resourcename,resource in config['resources'].iteritems():
 
         if start_time == None:
-            start_time = dbif.getmostrecent( resource['resource_id'] ) - (7* 24 * 3600)
+            start_time = dbif.getmostrecent( resource['resource_id'] )
             if start_time == None:
                 start_time = 0
+            else:
+                start_time = start_time - (7* 24 * 3600)
 
         acctreader = batch_acct.factory( resource['batch_system'], resource['acct_path'], resource['host_name_ext'])
 
