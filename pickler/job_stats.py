@@ -225,7 +225,7 @@ def stats_file_discard_record(file):
 class Host(object):
     # __slots__ = ('job', 'name', 'times', 'marks', 'raw_stats')
 
-    def __init__(self, job, name, raw_stats_dir, name_ext=''):
+    def __init__(self, job, name, raw_stats_dir, name_ext='', genproc = False):
         self.job = job
         self.name = name
         self.name_ext=name_ext
@@ -233,7 +233,10 @@ class Host(object):
         self.marks = {}
         self.raw_stats = {}
         self.raw_stats_dir=raw_stats_dir
-        self.procdump = procdump.ProcDump()
+        if genproc:
+            self.procdump = procdump.ProcDump()
+        else:
+            self.procdump = None
 
     def trace(self, fmt, *args):
         self.job.trace('%s: ' + fmt, self.name, *args)
@@ -379,7 +382,7 @@ class Host(object):
                     if False == skip:
                         self.parse_stats(rec_time, line, file_schemas, file)            
                 elif line.startswith('% procdump'):
-                    if False == skip:
+                    if False == skip and self.procdump:
                         self.procdump.parse(line)
                 elif c == SF_MARK_CHAR:
                     mark = line[1:].strip()
@@ -498,12 +501,12 @@ class Job(object):
         if len(host_list) == 0:
             self.error("empty host list\n")
             return False
-        for host_name in host_list:
+        for hidx, host_name in enumerate(host_list):
             # TODO Keep bad_hosts.
             try: host_name = host_name.split('.')[0]
             except: pass
             
-            host = Host(self, host_name, self.stats_home + '/archive',self.batch_acct.name_ext )
+            host = Host(self, host_name, self.stats_home + '/archive',self.batch_acct.name_ext, hidx == 0 )
             if host.gather_stats():
                 self.hosts[host_name] = host
         if not self.hosts:

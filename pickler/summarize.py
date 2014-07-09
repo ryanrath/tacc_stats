@@ -241,6 +241,7 @@ def summarize(j, lariatcache):
 
     # nfs metrics take up alot of space
     ignorelist.append("nfs")
+    ignorelist.append("irq")
     ignorelist.append("osc")
     ignorelist.append("mdc")
 
@@ -513,8 +514,8 @@ def summarize(j, lariatcache):
     if len(summaryDict['Error']) == 0:
         del summaryDict['Error']
 
-    if "hostname" in j.acct and j.acct['hostname'] in j.hosts:
-        pl = j.hosts[j.acct['hostname']].procdump.getproclist()
+    if "hostname" in j.acct and 'uid' in j.acct and j.acct['hostname'] in j.hosts:
+        pl = j.hosts[j.acct['hostname']].procdump.getproclist(j.acct['uid'])
         if len(pl) > 0:
             summaryDict['procDump'] = pl
 

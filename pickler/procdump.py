@@ -34,11 +34,14 @@ class ProcDump:
         return str(self.getproclist())
 
     def getproclist(self, uid=None):
+        allprocs = set()
+
         if uid != None:
             if uid in self.uidprocs:
-                return list(self.uidprocs[uid])
+                for proc in self.uidprocs[uid]:
+                    allprocs.add( self.getcommand(proc) )
+                return list(allprocs)
 
-        allprocs = set()
         for procs in self.uidprocs.itervalues():
             for proc in procs:
                 allprocs.add( self.getcommand(proc) )
