@@ -191,8 +191,9 @@ def isodate(s):
 class SLURMNativeAcct(BatchAcct):
   """ Process accounting data produced by the sacct command with the following """
   """ flags. """
+  """ SLURM_TIME_FORMAT=%s """
   """ sacct --allusers --parsable2 --noheader --allocations --allclusters      """
-  """     --format jobid,cluster,partition,account,group,user,submit,eligible,start,end,exitcode,nnodes,ncpus,nodelist,jobname """
+  """     --format jobid,cluster,partition,account,group,gid,user,uid,submit,eligible,start,end,exitcode,State,nnodes,ncpus,reqcpus,nodelist,jobname """
   """     --state CA,CD,F,NF,TO """
 
   def __init__(self,acct_file,host_name_ext):
@@ -203,14 +204,18 @@ class SLURMNativeAcct(BatchAcct):
       ('partition',                   str, 'Job partition'),
       ('account',                     str, 'Job account'),
       ('group',                       str, 'Group name of the job owner'),
+      ('gid',                         int, 'GID of the job owner'),
       ('user',                        str, 'User that is running the job'),
-      ('submit',                      isodate, 'Time the job was submitted'),
-      ('eligible',                    isodate, 'Time job was eligible to run (unix time stamp)'),
-      ('start_time',                  isodate, 'Time job started to run (unix time stamp)'),
-      ('end_time',                    isodate, 'Time job ended (unix time stamp)'),
-      ('exit_code',                   str, 'Exit status of job'),
-      ('nnodes',                      int, 'Number of nodes'),
+      ('uid',                         int, 'UID of the job owner'),
+      ('submit',                      int, 'Time the job was submitted'),
+      ('eligible',                    int, 'Time job was eligible to run (unix time stamp)'),
+      ('start_time',                  int, 'Time job started to run (unix time stamp)'),
+      ('end_time',                    int, 'Time job ended (unix time stamp)'),
+      ('exit_code',                   str, 'Exit code of job'),
+      ('exit_status',                 str, 'Exit status of the job'),
+      ('nodes',                       int, 'Number of nodes'),
       ('ncpus',                       int, 'Number of cpus'),
+      ('reqcpus',                     int, 'Number of cores requested'),
       ('node_list',                   str, 'Nodes used in job'),
       ('jobname',                     str, 'Job name')
       )
