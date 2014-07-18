@@ -298,6 +298,10 @@ def summarize(j, lariatcache):
     corederived = { "cpicore": [], "cpiref": [], "cpldref": [] }
     socketderived = { "membw": [] }
 
+    totaltimes = []
+    starttimes = []
+    endtimes = []
+
     # Naming convention:
     #  metricname - the name of the metric (such as cpu, mem etc).
     #  interface  - the interface exposed for the metric (such as user, system)
@@ -307,6 +311,10 @@ def summarize(j, lariatcache):
         nHosts += 1
         nCoresPerSocket = 1
         hostwalltime = host.times[-1] - host.times[0]
+
+        totaltimes.append(hostwalltime - walltime)
+        starttimes.append(host.times[0] - j.start_time)
+        endtimes.append(host.times[-1] - j.end_time)
 
         if abs(hostwalltime - walltime) > TIMETHRESHOLD:
             summaryDict['Error'].append("Large discrepency between job account walltime and tacc_stats walltime for {}. {} != {}.".format(host.name, walltime, hostwalltime) )
@@ -503,7 +511,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.21"
+    summaryDict['summary_version'] = "0.9.22"
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']
@@ -518,6 +526,9 @@ def summarize(j, lariatcache):
         pl = j.hosts[j.acct['hostname']].procdump.getproclist(j.acct['uid'])
         if len(pl) > 0:
             summaryDict['procDump'] = pl
+
+    if walltime > 0 and len(totaltimes) > 0:
+        summaryDict['timeoffset'] = { 'total': calculate_stats(totaltimes), 'start': calculate_stats(starttimes), 'end': calculate_stats(endtimes) }
 
     return summaryDict
 
