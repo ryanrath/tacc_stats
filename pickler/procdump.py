@@ -132,7 +132,11 @@ class ProcDump:
                 state = CMDLINE_NAME
                 continue
             if state == CMDLINE_NAME:
-                processes[pid] = line.replace("\0", " ").rstrip()
+                try:
+                    processes[pid] = unicode(line.replace("\0", " ").rstrip())
+                except:
+                    # If the cmdline is not unicode, then don't replace the proc/status Name: field
+                    pass
                 state = START
                 continue
 
