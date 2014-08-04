@@ -511,7 +511,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.22"
+    summaryDict['summary_version'] = "0.9.23"
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']

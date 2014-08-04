@@ -37,6 +37,7 @@ class ProcDump:
         allprocs = set()
 
         if uid != None:
+            uid = str(uid)
             if uid in self.uidprocs:
                 for proc in self.uidprocs[uid]:
                     allprocs.add( self.getcommand(proc) )
