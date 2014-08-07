@@ -208,6 +208,112 @@ def getnumhosts(acct):
     if 'slots' in acct:
         return int(acct['slots']) / 12
 
+def getinterfacestats(hoststats, metricname, interface, indices):
+
+    ifidx = None
+    if interface != "all":
+        ifidx = indices[metricname][interface]
+
+    totals = None
+    for devstats in hoststats[metricname].itervalues():
+        if totals == None:
+            if interface == "all":
+                totals = numpy.sum(devstats, axis = 1)
+            else:
+                totals = numpy.array(devstats[:,ifidx])
+        else:
+            if interface == "all":
+                totals += numpy.sum(devstats, axis = 1)
+            else:
+                totals += devstats[:,ifidx]
+
+    return totals
+
+def nativeilist(numpyarray):
+    return [ int(x) for x in numpyarray ]
+
+def nativefloatlist(numpyarray):
+    return [ float(x) for x in numpyarray ]
+
+def gettimeseries(j, indices):
+
+    MEGA = 1024.0 * 1024.0
+    GIGA = MEGA * 1024.0
+
+    data = { "hosts": [], "error": {}, "cpuuser": {}, "membw": {}, "memused": {}, "simdins": {}, "times": {}, "lnet": {}, "ib_lnet": {}, "version": 1 }
+
+    i = 0
+    for host in j.hosts.itervalues():  # for all the hosts present in the file
+        # docs are only allowed string keys
+        hostidx = str(i)
+        i += 1
+
+        timedeltas = numpy.diff(host.times)
+        validtimes = [ True if x > MINTIMEDELTA else False for x in timedeltas ]
+
+        data['hosts'].append(host.name) 
+
+        if len(validtimes) < 2:
+            data['error'][hostidx] = { "error": 1 }
+            continue
+
+        data["times"][hostidx] = nativeilist( numpy.compress(validtimes, host.times[1:]) )
+
+        cpuuser =  getinterfacestats(host.stats, "cpu", "user", indices)
+        cpuall =  getinterfacestats(host.stats, "cpu", "all", indices)
+        cpuuserpercent = numpy.diff(cpuuser) * 1.0 / numpy.diff(cpuall)
+        data["cpuuser"][hostidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
+
+        try:
+            if "intel_snb_imc" in host.stats:
+                membw = getinterfacestats(host.stats, "intel_snb_imc", "CAS_READS", indices) + getinterfacestats(host.stats, "intel_snb_imc", "CAS_WRITES", indices)
+            elif "intel_uncore" in host.stats:
+                membw = getinterfacestats(host.stats, "intel_uncore", "L3_MISS_READ", indices) + getinterfacestats(host.stats, "intel_uncore", "L3_MISS_WRITE", indices)
+            else:
+                raise KeyError()
+
+            membw = numpy.diff( membw ) * 64.0 / GIGA
+            data["membw"][hostidx] = nativefloatlist( numpy.compress(validtimes, membw / timedeltas ) )
+        except KeyError:
+            data['membw'][hostidx] = { "error": 2 }
+
+        try:
+            if "intel_snb" in host.stats:
+                simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_D_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_D_ALL', indices);
+            elif "intel_pmc3" in host.stats:
+                simdins = getinterfacestats(host.stats, "intel_pmc3", "FP_COMP_OPS_EXE_SSE", indices);
+            else:
+                raise KeyError()
+
+            simdins = numpy.diff(simdins) / GIGA
+            data["simdins"][hostidx] = nativefloatlist( numpy.compress(validtimes, simdins / timedeltas ) )
+        except KeyError:
+            data["simdins"][hostidx] = { "error": 2 }
+
+
+        try:
+            memusage = getinterfacestats(host.stats, "mem", "MemUsed", indices) / GIGA
+            data["memused"][hostidx] = nativefloatlist( numpy.compress(validtimes, memusage[1:] ) )
+        except KeyError:
+            data["memused"][hostidx] = { "error": 2 }
+
+        try:
+            lnet_abs = getinterfacestats(host.stats, "lnet", "tx_bytes", indices) + getinterfacestats(host.stats, "lnet", "rx_bytes", indices)
+            lnet = numpy.diff(lnet_abs) / MEGA
+            data["lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, lnet / timedeltas) )
+        except KeyError:
+            data["lnet"][hostidx] = { "error": 2 }
+
+        try:
+            ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices) - lnet_abs
+            ib_lnet = numpy.diff(ib_lnet) / MEGA
+            data["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
+        except KeyError:
+            data["ib_lnet"][hostidx] = { "error": 2 }
+
+        
+    return data
+
 def summarize(j, lariatcache):
 
     summaryDict = {}
@@ -437,7 +543,9 @@ def summarize(j, lariatcache):
             else:
                 devstats /= enties[metricname][interface]
 
+    timeseries = None
     if statsOk:
+        timeseries = gettimeseries(j,indices)
 
         for mname, mdata in corederived.iteritems():
             # Store CPI per core
@@ -511,7 +619,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.23"
+    summaryDict['summary_version'] = "0.9.24"
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']
@@ -530,7 +638,10 @@ def summarize(j, lariatcache):
     if walltime > 0 and len(totaltimes) > 0:
         summaryDict['timeoffset'] = { 'total': calculate_stats(totaltimes), 'start': calculate_stats(starttimes), 'end': calculate_stats(endtimes) }
 
-    return summaryDict
+    if timeseries != None:
+        timeseries['_id'] = uniq
+
+    return (summaryDict, timeseries)
 
 if __name__ == '__main__':
     pass

@@ -75,20 +75,34 @@ def createsummary(totalprocs, procid):
             if verbose:
                 sys.stderr.write( "{} local_job_id = {}\n".format(datetime.datetime.utcnow().isoformat(), acct['id']) )
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'], bacct )
-            summary = summarize.summarize(job, lariat)
+            summary,timeseries = summarize.summarize(job, lariat)
 
             if summary['complete'] == False and summary["acct"]['end_time'] > referencetime:
                 # Do not mark incomplete jobs as done unless they are older than the
                 # reference time (which defaults to 3 days ago)
                 continue
 
+            summaryOk = False
             outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
 
             if outdb[resourcename].find_one( {"_id": summary["_id"]}, { "_id":1 } ) != None:
+                summaryOk = True
+
+            timeseriesOk = False
+            if timeseries != None:
+                outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
+                if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
+                    timeseriesOk = True
+
+            if summaryOk and timeseriesOk:
                 dbwriter.logprocessed( acct, settings['resource_id'], PROCESS_VERSION )
                 processtimes['mintime'] = min( processtimes['mintime'], summary["acct"]['end_time'] )
                 processtimes['maxtime'] = max( processtimes['maxtime'], summary["acct"]['end_time'] )
                 ratecalc.increment()
+            else:
+                # Mark as negative process version to indicate that it has been processed
+                # but no summary was output
+                dbwriter.logprocessed( acct, settings['resource_id'], 0 - PROCESS_VERSION )
 
         if processtimes['maxtime'] != 0:
             timewindows[resourcename] = processtimes
