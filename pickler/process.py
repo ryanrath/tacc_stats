@@ -90,9 +90,12 @@ def createsummary(totalprocs, procid):
 
             timeseriesOk = False
             if timeseries != None:
+                # If the timeseries data is present then it must got into the db
                 outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
                 if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
                     timeseriesOk = True
+            else:
+                timeseriesOk = True
 
             if summaryOk and timeseriesOk:
                 dbwriter.logprocessed( acct, settings['resource_id'], PROCESS_VERSION )
