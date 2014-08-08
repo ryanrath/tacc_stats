@@ -229,9 +229,6 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
     return totals
 
-def nativeilist(numpyarray):
-    return [ int(x) for x in numpyarray ]
-
 def nativefloatlist(numpyarray):
     return [ float(x) for x in numpyarray ]
 
@@ -257,7 +254,7 @@ def gettimeseries(j, indices):
             data['error'][hostidx] = { "error": 1 }
             continue
 
-        data["times"][hostidx] = nativeilist( numpy.compress(validtimes, host.times[1:]) )
+        data["times"][hostidx] = nativefloatlist( numpy.compress(validtimes, host.times[1:]) )
 
         cpuuser =  getinterfacestats(host.stats, "cpu", "user", indices)
         cpuall =  getinterfacestats(host.stats, "cpu", "all", indices)
@@ -619,7 +616,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.24"
+    summaryDict['summary_version'] = "0.9.25"
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']

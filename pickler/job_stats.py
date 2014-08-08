@@ -84,6 +84,15 @@ def schema_fixup(type_name, desc):
             else:
                 res += token + " "
         return res
+    elif type_name == "ib":
+        res = ""
+        for token in desc.split():
+            token = token.strip()
+            if not token.endswith(",W=32"):
+                res += token.strip() + ",W=32 "
+            else:
+                res += token.strip() + " "
+        return res
 
     return desc
 
@@ -330,7 +339,7 @@ class Host(object):
                 c = line[0]
                 if c.isdigit():
                     str_time, str_jobid = line.split()
-                    rec_time = long(str_time)
+                    rec_time = float(str_time)
                     rec_jobid = set(str_jobid.split(','))
                     if self.job.id in rec_jobid:
                         self.trace("file `%s' rec_time %d, rec_jobid `%s'\n",
@@ -361,7 +370,7 @@ class Host(object):
                 if c.isdigit():
                     skip = False
                     str_time, str_jobid = line.split()
-                    rec_time = long(str_time)
+                    rec_time = float(str_time)
                     rec_jobid = set(str_jobid.split(','))
                     if self.job.id not in rec_jobid:
                         line = file.next()
