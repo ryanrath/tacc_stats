@@ -85,7 +85,7 @@ def createsummary(totalprocs, procid):
             summaryOk = False
             outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
 
-            if outdb[resourcename].find_one( {"_id": summary["_id"]}, { "_id":1 } ) != None:
+            if outdb[resourcename].find_one( {"_id": summary["_id"], "summary_version": summary["summary_version"] }, { "_id":1 } ) != None:
                 summaryOk = True
 
             timeseriesOk = False
