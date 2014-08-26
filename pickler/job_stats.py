@@ -6,6 +6,8 @@ import re
 import procdump
 import string
 
+import logging
+
 if sys.version.startswith("3"):
     import io
     io_method = io.BytesIO
@@ -18,6 +20,8 @@ verbose = os.getenv('TACC_STATS_VERBOSE')
 
 if not verbose:
     numpy.seterr(over='ignore')
+else:
+    logging.basicConfig(level=logging.DEBUG)
 
 prog = os.path.basename(sys.argv[0])
 if prog == "":
@@ -231,24 +235,33 @@ def stats_file_discard_record(file):
             return
 
 
-class Host(object):
-    # __slots__ = ('job', 'name', 'times', 'marks', 'raw_stats')
+# ------------------------------------------------------------------
 
-    def __init__(self, job, name, raw_stats_dir, name_ext='', genproc = False):
+(PENDING_FIRST_RECORD, ACTIVE, ACTIVE_IGNORE, LAST_RECORD, DONE ) = range(0,5)
+statenames = { PENDING_FIRST_RECORD: "PENDING_FIRST_RECORD", ACTIVE: "ACTIVE", ACTIVE_IGNORE: "ACTIVE_IGNORE", LAST_RECORD: "LAST_RECORD", DONE: "DONE" }
+
+class Host(object):
+    def __init__(self, job, name, raw_stats_dir, name_ext, genproc = False):
         self.job = job
         self.name = name
-        self.name_ext=name_ext
-        self.times = []
-        self.marks = {}
-        self.raw_stats = {}
+        self.name_ext = name_ext
         self.raw_stats_dir=raw_stats_dir
         if genproc:
             self.procdump = procdump.ProcDump()
         else:
             self.procdump = None
 
+        self.times = []
+        self.raw_stats = {}
+        self.marks = {}
+
+        self.state = PENDING_FIRST_RECORD
+        self.timestamp = None
+        self.filename = None
+        self.fileline = None
+
     def trace(self, fmt, *args):
-        self.job.trace('%s: ' + fmt, self.name, *args)
+        logging.debug( fmt % args )
 
     def error(self, fmt, *args):
         self.job.error('%s: ' + fmt, self.name, *args)
@@ -271,22 +284,20 @@ class Host(object):
                 # Prune to files that might overlap with job.
                 ent_start = long(base)
                 ent_end = ent_start + 2*RAW_STATS_TIME_MAX
-                self.trace("Bill: %d, %d, %d, %d, %d, %d \n", ent_start,job_start,ent_end, job_end,  max(job_start, ent_start) , min(job_end, ent_end))
-#                if max(job_start, ent_start) <= min(job_end, ent_end):
                 if ((ent_start <= job_start) and (job_start <= ent_end)) or ((ent_start <= job_end) and (job_end <= ent_end)) or (max(job_start, ent_start) <= min(job_end, ent_end)) :
                     full_path = os.path.join(raw_host_stats_dir, ent)
                     path_list.append((full_path, ent_start))
-                    self.trace("path `%s', start %d\n", full_path, ent_start)
+                    self.trace("path `%s', start %d", full_path, ent_start)
         except Exception as e:
             print e
             pass
         path_list.sort(key=lambda tup: tup[1])
         return path_list
 
-    def read_stats_file_header(self, file):
+    def read_stats_file_header(self, fp):
         file_schemas = {}
-#        print "DEBUG ", file
-        for line in file:
+        for line in fp:
+            self.fileline += 1
             try:
                 c = line[0]
                 if c == SF_SCHEMA_CHAR:
@@ -296,7 +307,7 @@ class Host(object):
                         file_schemas[type_name] = schema
                     else:
                         self.error("file `%s', type `%s', schema mismatch desc `%s'\n",
-                                   file.name, type_name, schema_desc)
+                                   fp.name, type_name, schema_desc)
                 elif c == SF_PROPERTY_CHAR:
                     pass
                 elif c == SF_COMMENT_CHAR:
@@ -304,122 +315,150 @@ class Host(object):
                 else:
                     break
             except Exception as exc:
-                self.trace("file `%s', caught `%s' discarding line `%s'\n",
-                           file.name, exc, line)
+                self.error("file `%s', caught `%s' discarding line `%s'\n",
+                           fp.name, exc, line)
                 break
         return file_schemas
 
-    def parse_stats(self, rec_time, line, file_schemas, file):
-        type_name, dev_name, rest = line.split(None, 2)
-        schema = file_schemas.get(type_name)
-        if not schema:
-            self.error("file `%s', unknown type `%s', discarding line `%s'\n",
-                       file.name, type_name, line)
-            return
-        # TODO stats_dtype = numpy.uint64
-        # XXX count = ?
-        vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
-        if vals.shape[0] != len(schema):
-            self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'\n",
-                       file.name, type_name, len(schema), vals.shape[0], line)
-            return
-        type_stats = self.raw_stats.setdefault(type_name, {})
-        dev_stats = type_stats.setdefault(dev_name, [])
-        dev_stats.append((rec_time, vals))
 
-    def read_stats_file(self, file):
-        file_schemas = self.read_stats_file_header(file)
-        if not file_schemas:
-            self.trace("file `%s' bad header\n", file.name)
+    def read_stats_file(self, fp):
+
+        if self.state == DONE:
             return
-        rec_jobid = set()
-        # Scan file for records belonging to JOBID.
-        for line in file:
+
+        self.filename = fp.name
+        self.fileline = 0
+
+        self.file_schemas = self.read_stats_file_header(fp)
+        if not self.file_schemas:
+            self.error("file `%s' bad header on line %s\n", self.filename, self.fileline)
+            return
+
+        for line in fp:
+            self.fileline += 1
+            self.parse(line.strip())
+            if self.state == DONE:
+                break
+
+
+    def parse(self, line):
+        if len(line) < 1:
+            return
+
+        ch = line[0]
+
+        if ch.isdigit():
+            self.processtimestamp(line)
+        elif ch.isalpha():
+            self.processdata(line)
+        elif ch == SF_SCHEMA_CHAR:
+            self.processschema(line)
+        elif ch == SF_COMMENT_CHAR:
+            pass
+        elif ch == SF_PROPERTY_CHAR:
+            self.processproperty(line)
+        elif ch == SF_MARK_CHAR:
             try:
-                c = line[0]
-                if c.isdigit():
-                    str_time, str_jobid = line.split()
-                    rec_time = float(str_time)
-                    rec_jobid = set(str_jobid.split(','))
-                    if self.job.id in rec_jobid:
-                        self.trace("file `%s' rec_time %d, rec_jobid `%s'\n",
-                                   file.name, rec_time, rec_jobid)
-                        self.times.append(rec_time)
-                        break
-                elif line.startswith('% begin'):
-                    rec_jobid.add(line.split()[2])
-                    if self.job.id in rec_jobid:
-                        self.times.append(rec_time)
-                        mark = line[1:].strip()
-                        self.marks[mark] = True
-                        break
-            except Exception as exc:
-                self.trace("file `%s', caught `%s', discarding `%s'\n",
-                           file.name, str(exc), line)
-                stats_file_discard_record(file)
+                self.processmark(line)
+            except TypeError as e:
+                self.error("TypeError %s in %s line %s", str(e), self.filename, self.fileline)
         else:
-            # We got to the end of this file wthout finding any
-            # records belonging to JOBID.  Try next path.
-            self.trace("file `%s' has no records belonging to job\n", file.name)
-            return
-        # OK, we found a record belonging to JOBID.
-        skip = False
-        for line in file:
-            try:
-                c = line[0]
-                if c.isdigit():
-                    skip = False
-                    str_time, str_jobid = line.split()
-                    rec_time = float(str_time)
-                    rec_jobid = set(str_jobid.split(','))
-                    if self.job.id not in rec_jobid:
-                        line = file.next()
-                        if line.startswith(SF_MARK_CHAR): 
-                            tokens = line[1:].strip().split(" ")
-                            if len(tokens) > 1 and tokens[0].strip() == "end":
-                                rec_jobid.add( tokens[1].strip() )
-                                if tokens[1].strip() == self.job.id:
-                                    self.marks[line[1:].strip()] = True
-                            else:
-                                self.trace("file '%s' syntax error '%s'\n", file.name, line)
-                        if self.job.id not in rec_jobid:
-                            return
-                    self.trace("file `%s' rec_time %d, rec_jobid `%s'\n",
-                               file.name, rec_time, rec_jobid)
-                    self.times.append(rec_time)
-                elif c.isalpha():
-                    if False == skip:
-                        self.parse_stats(rec_time, line, file_schemas, file)            
-                elif line.startswith('% procdump'):
-                    if False == skip and self.procdump:
-                        self.procdump.parse(line)
-                elif c == SF_MARK_CHAR:
-                    mark = line[1:].strip()
-                    actions = mark.split()
-                    if actions[1].strip() != self.job.id:
-                        self.times.pop()
-                        skip = True
-                    else:
-                        if actions[0] == "begin" and len(self.times) > 1:
-                            # this is a 'begin' record for this job, but have already processed a record
-                            # for this job. This race condition occurs if the job starts very close to the
-                            # normal cron-initiated record.  Tacc_stats resets some performance counters on
-                            # a begin, so it is necessary to discard the records before this one.
-                            self.job.errors.add("BEGIN_IN_MIDDLE {} {} {} discard {} previous".format(self.name, file.name, rec_time, len(self.times)-1 ) )
-                            self.raw_stats = {}
-                            self.times = [ rec_time ]
+            print "Unregognised character \"{}\"".format(line)
+            pass
 
-                        skip = False
-                    if skip == False:
-                        self.marks[mark] = True
-                #elif c == SF_COMMENT_CHAR:
-                    #pass        
+    def setstate(self, newstate, reason = None):
+        self.trace("TRANS {} -> {} ({})".format( statenames[self.state], statenames[newstate], reason ) )
+        self.state = newstate
+
+    def processtimestamp(self,line):
+        recs = line.strip().split(" ")
+        self.timestamp = float(recs[0])
+        jobs = recs[1].strip().split(",")
+
+        if self.state == PENDING_FIRST_RECORD:
+            if self.job.id in jobs:
+                self.setstate(ACTIVE, "job in timestamp list")
+            elif self.timestamp >= self.job.start_time:
+                self.setstate(ACTIVE, "timestamp in job window")
+        elif self.state == ACTIVE:
+            if (self.timestamp - 600) > self.job.end_time:
+                self.setstate(DONE, "timestamp out of job window")
+        elif self.state == ACTIVE_IGNORE:
+            self.setstate(ACTIVE)
+        elif self.state == LAST_RECORD:
+            self.setstate(DONE, "processed last record")
+
+        if self.state == ACTIVE:
+            self.times.append( self.timestamp )
+
+    def processdata(self,line):
+        if self.state == ACTIVE or self.state == LAST_RECORD:
+
+            type_name, dev_name, rest = line.split(None, 2)
+            schema = self.file_schemas.get(type_name)
+            if not schema:
+                self.error("file `%s', unknown type `%s', discarding line `%s'\n",
+                        self.filename, type_name, self.fileline)
+                return
+
+            vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
+            if vals.shape[0] != len(schema):
+                self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'\n",
+                       self.filename, type_name, len(schema), vals.shape[0], self.fileline)
+                return
+
+            type_stats = self.raw_stats.setdefault(type_name, {})
+            dev_stats = type_stats.setdefault(dev_name, [])
+            dev_stats.append((self.timestamp, vals))
+
+    def processschema(self,line):
+        print "processschema"
+        pass
+
+    def processproperty(self,line):
+        print "processproperty"
+        pass
+
+    def processmark(self,line):
+        mark = line[1:].strip()
+        actions = mark.split()
+        if actions[0] == "end":
+            if actions[1] == self.job.id:
+                if self.state == ACTIVE:
+                    # This is the end for the sought after job
+                    self.setstate(LAST_RECORD, "seen end marker")
+                    self.marks['end'] = True
                 else:
-                    pass #...
-            except Exception as exc:
-                self.trace("file `%s', caught `%s', discarding `%s'\n",
-                           file.name, str(exc), line)
-                stats_file_discard_record(file)
+                    self.error("end marker in {} line {} before job started".format(self.filename, self.fileline) )
+                    # Stay in non-active
+            else:
+                # this is an end marker for another job.
+                if self.state == ACTIVE:
+                    self.times = self.times[:-1]
+                    self.setstate(ACTIVE_IGNORE, "end for another job")
+
+        if actions[0] == "begin":
+            self.trace( "Seen begin at %s for \"%s\"", self.timestamp, actions[1] )
+            if actions[1] == self.job.id:
+                if self.state == ACTIVE:
+                    # Need to discard any earlier timerecords since the begin resets the counters.
+                    if len(self.times) > 1:
+                        self.trace("BEGIN_IN_MIDDLE {} {} line {} @ {} discard {} previous".format(self.name, self.filename, self.fileline, self.timestamp, len(self.times)-1 ) )
+                        self.raw_stats = {}
+                        self.times = [ self.timestamp ]
+                else:
+                    self.setstate(ACTIVE, "seen begin marker")
+                    self.marks['begin'] = True
+            else:
+                # this is a begin marker for another job.
+                if self.state == ACTIVE:
+                    self.times = self.times[:-1]
+                    self.setstate(ACTIVE_IGNORE, "begin for another job")
+
+        if actions[0] == "procdump":
+            if self.state == ACTIVE and self.procdump != None:
+                self.procdump.parse(line)
+        pass
 
     def gather_stats(self):
         path_list = self.get_stats_paths()
@@ -437,14 +476,6 @@ class Host(object):
             except IOError as ioe:
                 self.error("read error for file %s\n", path)
 
-        # begin_mark = 'begin %s' % self.job.id # No '%'.
-        # if not begin_mark in self.marks:
-        #     self.error("no begin mark found\n")
-        #     return False
-        # end_mark = 'end %s' % self.job.id # No '%'.
-        # if not end_mark in self.marks:
-        #     self.error("no end mark found\n")
-        #     return False
         return self.raw_stats
 
     def get_stats(self, type_name, dev_name, key_name):
@@ -480,6 +511,7 @@ class Job(object):
         trace('%s: ' + fmt, self.id, *args)
 
     def error(self, fmt, *args):
+        self.errors.add( fmt % args )
         error('%s: ' + fmt, self.id, *args)
 
     def get_schema(self, type_name, desc=None):
