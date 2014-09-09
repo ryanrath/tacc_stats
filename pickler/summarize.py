@@ -11,6 +11,8 @@ import json
 import traceback
 from scipy import stats
 
+SUMMARY_VERSION = "0.9.26"
+
 VERBOSE = False
 
 # Max discrepency between walltime and records time
@@ -66,6 +68,102 @@ def converttooutput(series, summaryDict, j):
                 v = calculate_stats(series[l][k])
                 addmetrics(summaryDict,j.overflows, l, k, v)
 
+
+# Generate the job schema definition based on the pickle schema and enriched with
+# information about the data sources - note this info needs to be maintained!
+
+def generate_schema_defn(job):
+
+    schema = {}
+
+    for k in job.schemas.keys():
+        schema[k] = {}
+
+        for e, t in job.schemas[k].iteritems():
+
+            if t.is_control:
+                continue
+
+            info = {}
+            if k == "block":
+                info["source"] = {"type": "sysfs", "name": "/sys/block/*/stat" }
+            if k == "cpu":
+                info["source"] = {"type": "procfs", "name": "/proc/stat" }
+            if k == "ps":
+                if e == "ctxt" or e == "processes":
+                    info["source"] = { "type": "procfs", "name": "/proc/stat" }
+                else:
+                    info["source"] = { "type": "procfs", "name": "/proc/loadavg" }
+            if k == "panfs":
+                if e == "kernel_slab_size":
+                    info["source"] = { "type": "procfs", "name": "/proc/slabinfo" }
+                else:
+                    info["source"] = { "type": "process", "name": "panfs_stat" }
+            if k == "irq":
+                info["source"] = {"type": "procfs", "name": "/proc/interrupts" }
+            if k == "mem":
+                info["source"] = {"type": "sysfs", "name": "/sys/devices/system/node/node*/meminfo" }
+            if k == "net":
+                info["source"] = {"type": "sysfs", "name": "/sys/class/net/*/statistics" }
+            if k == "nfs":
+                if e == "kernel_slab_size":
+                    info["source"] = { "type": "procfs", "name": "/proc/slabinfo" }
+                else:
+                    info["source"] = { "type": "procfs", "name": "/proc/self/mountstats" }
+            if k == "numa":
+                info["source"] = {"type": "sysfs", "name": "/sys/devices/system/node/node*/numastat" }
+            if k == "sched":
+                info["source"] = { "type": "procfs", "name": "/proc/schedstat" }
+            if k == "sysv_shm":
+                info["source"] = { "type": "procfs", "name": "/proc/sysvipc/shm" }
+            if k == "tmpfs":
+                info["source"] = { "type": "syscall", "name": "statfs" }
+            if k == "vfs":
+                if e == "dentry_use":
+                    info["source"] = { "type": "procfs", "name": "/proc/sys/fs/dentry-state" }
+                else:
+                    info["source"] = { "type": "procfs", "name": "/proc/sys/fs/inode-state" }
+            if k == "vm":
+                info["source"] = { "type": "procfs", "name": "/proc/vmstat" }
+
+            info['type'] = "counter" if t.is_event else "instant"
+            info['unit'] = "" if t.unit == None else t.unit
+
+            schema[k][e] = info
+
+    return schema
+
+def generatesummaryschema(jobschema):
+
+    schema = {}
+    schema['_id'] = "summary-" + SUMMARY_VERSION
+    schema['summary_version'] = SUMMARY_VERSION
+
+    schema['definitions'] = {}
+
+    # Merge job schema - some fields will be overwritten later
+    for k,v in jobschema.iteritems():
+        schema['definitions'][k] = {}
+        for e,t in v.iteritems():
+            out = dict(t)
+            if t['type'] == 'counter':
+                out['type'] = 'rate'
+                out['unit'] = t['unit'] + "/s"
+            schema['definitions'][k][e] = out
+
+
+    # Add summary-specific entities
+    schema['definitions']['FLOPS'] = { 'type': "rate", "unit": "ops/s", "description": "Generated from the available FLOPS hardware counters present on the cores" }
+    schema['definitions']['Error'] = { 'type': "metadata", "description": "List of the processing errors encountered during job summary creation" }
+    schema['definitions']['complete'] = { 'type': "metadata", "description": "Whether the raw data was available for all nodes that the job was assigned" }
+    schema['definitions']['nHosts'] = { 'type': "discrete", "unit": "1", "description": "Number of hosts with raw data" }
+    schema['definitions']['cpicore'] = { 'type': "ratio", "unit": "1", "description": "Number of clock ticks per instruction" }
+    schema['definitions']['cpiref'] = { 'type': "ratio", "unit": "1", "description": "Number of reference clock ticks per instruction" }
+    schema['definitions']['cpldref'] = { 'type': "ratio", "unit": "1", "description": "Number of clock ticks per instruction" }
+    schema['definitions']['membw'] = { 'type': "rate", "unit": "B/s", "description": "Amount of data transferred to main memory" }
+
+    print json.dumps(schema, indent=4)
+    sys.exit(0)
 
 class LariatManager:
     def __init__(self, lariatpath):
@@ -229,6 +327,22 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
     return totals
 
+def getallstats(hoststats, metricname, interface, indices):
+
+    ifidx = None
+    if interface != "all":
+        ifidx = indices[metricname][interface]
+
+    result = {}
+    for devname, devstats in hoststats[metricname].iteritems():
+        if interface == "all":
+            result[devname] = numpy.sum(devstats, axis = 1)
+        else:
+            result[devname] = numpy.array(devstats[:,ifidx])
+
+    return result
+
+
 def nativefloatlist(numpyarray):
     return [ float(x) for x in numpyarray ]
 
@@ -237,7 +351,9 @@ def gettimeseries(j, indices):
     MEGA = 1024.0 * 1024.0
     GIGA = MEGA * 1024.0
 
-    data = { "hosts": [], "error": {}, "cpuuser": {}, "membw": {}, "memused": {}, "simdins": {}, "times": {}, "lnet": {}, "ib_lnet": {}, "version": 1 }
+    data = { "hosts": [], "error": {}, "times": {}, "version": 2, "nodebased": {}, "devicebased": {} }
+    nodebased = { "cpuuser": {}, "membw": {}, "memused_minus_diskcache": {}, "simdins": {}, "lnet": {}, "ib_lnet": {} }
+    devicebased = { "cpuuser": {} }
 
     i = 0
     for host in j.hosts.itervalues():  # for all the hosts present in the file
@@ -258,8 +374,16 @@ def gettimeseries(j, indices):
 
         cpuuser =  getinterfacestats(host.stats, "cpu", "user", indices)
         cpuall =  getinterfacestats(host.stats, "cpu", "all", indices)
-        cpuuserpercent = numpy.diff(cpuuser) * 1.0 / numpy.diff(cpuall)
-        data["cpuuser"][hostidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
+        cpuuserpercent = numpy.diff(cpuuser) * 100.0 / numpy.diff(cpuall)
+        nodebased["cpuuser"][hostidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
+
+        percpuuser = getallstats(host.stats, "cpu", "user", indices)
+        percpuall = getallstats(host.stats, "cpu", "all", indices)
+        for cpuidx, cpuu in percpuuser.iteritems():
+            cpuuserpercent = numpy.diff(cpuu) * 100.0 / numpy.diff(percpuall[cpuidx])
+            if hostidx not in devicebased["cpuuser"]:
+                devicebased["cpuuser"][hostidx] = {}
+            devicebased["cpuuser"][hostidx]["cpu" + cpuidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
 
         try:
             if "intel_snb_imc" in host.stats:
@@ -270,9 +394,9 @@ def gettimeseries(j, indices):
                 raise KeyError()
 
             membw = numpy.diff( membw ) * 64.0 / GIGA
-            data["membw"][hostidx] = nativefloatlist( numpy.compress(validtimes, membw / timedeltas ) )
+            nodebased["membw"][hostidx] = nativefloatlist( numpy.compress(validtimes, membw / timedeltas ) )
         except KeyError:
-            data['membw'][hostidx] = { "error": 2 }
+            nodebased['membw'][hostidx] = { "error": 2 }
 
         try:
             if "intel_snb" in host.stats:
@@ -283,31 +407,37 @@ def gettimeseries(j, indices):
                 raise KeyError()
 
             simdins = numpy.diff(simdins) / GIGA
-            data["simdins"][hostidx] = nativefloatlist( numpy.compress(validtimes, simdins / timedeltas ) )
+            nodebased["simdins"][hostidx] = nativefloatlist( numpy.compress(validtimes, simdins / timedeltas ) )
         except KeyError:
-            data["simdins"][hostidx] = { "error": 2 }
+            nodebased["simdins"][hostidx] = { "error": 2 }
 
 
         try:
-            memusage = getinterfacestats(host.stats, "mem", "MemUsed", indices) / GIGA
-            data["memused"][hostidx] = nativefloatlist( numpy.compress(validtimes, memusage[1:] ) )
+            memusage = getinterfacestats(host.stats, "mem", "MemUsed", indices)
+            filepages = getinterfacestats(host.stats, "mem",'FilePages' , indices)
+            slab  = getinterfacestats(host.stats, "mem", "Slab", indices)
+            mem_minus = (memusage - filepages - slab ) / GIGA
+            nodebased["memused_minus_diskcache"][hostidx] = nativefloatlist( numpy.compress(validtimes, mem_minus[1:] ) )
         except KeyError:
-            data["memused"][hostidx] = { "error": 2 }
+            nodebased["memused_minus_diskcache"][hostidx] = { "error": 2 }
 
         try:
             lnet_abs = getinterfacestats(host.stats, "lnet", "tx_bytes", indices) + getinterfacestats(host.stats, "lnet", "rx_bytes", indices)
             lnet = numpy.diff(lnet_abs) / MEGA
-            data["lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, lnet / timedeltas) )
+            nodebased["lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, lnet / timedeltas) )
         except KeyError:
-            data["lnet"][hostidx] = { "error": 2 }
+            nodebased["lnet"][hostidx] = { "error": 2 }
 
         try:
             ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices) - lnet_abs
             ib_lnet = numpy.diff(ib_lnet) / MEGA
-            data["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
+            nodebased["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
         except KeyError:
-            data["ib_lnet"][hostidx] = { "error": 2 }
+            nodebased["ib_lnet"][hostidx] = { "error": 2 }
 
+
+    data["nodebased"] =  nodebased
+    data["devicebased"] = devicebased
         
     return data
 
@@ -316,6 +446,8 @@ def summarize(j, lariatcache):
     summaryDict = {}
     summaryDict['Error'] = list(j.errors)
     
+    # TODO summarySchema = {}
+
     # The tacc_stats source data is assumed complete if we have records with end markers
     # for all hosts.
     hostswithends = 0
@@ -373,6 +505,9 @@ def summarize(j, lariatcache):
             metrics[t].append('all')
         for m in j.schemas[t]:
             metrics[t].append(m)
+
+    # TODO jobschema = generate_schema_defn(j)
+    # TODO generatesummaryschema(jobschema)
 
     indices = {}
     totals = {}
@@ -616,7 +751,7 @@ def summarize(j, lariatcache):
                 sys.stderr.write( '%s\n' % traceback.format_exc() )
                 summaryDict['Error'].append("schema data not found")
 
-    summaryDict['summary_version'] = "0.9.26"
+    summaryDict['summary_version'] = SUMMARY_VERSION
     uniq = str(j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']
