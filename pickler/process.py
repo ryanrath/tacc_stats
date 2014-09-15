@@ -7,6 +7,7 @@ import sys
 import time
 import datetime
 from pymongo import MongoClient
+from pymongo.errors import InvalidDocument
 from multiprocessing import Process
 import socket
 
@@ -91,9 +92,13 @@ def createsummary(totalprocs, procid):
             timeseriesOk = False
             if timeseries != None:
                 # If the timeseries data is present then it must got into the db
-                outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
-                if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
-                    timeseriesOk = True
+                try:
+                    outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
+                    if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
+                        timeseriesOk = True
+                except InvalidDocument as e:
+                    sys.stderr.write("Error inserting document {}\n".format(summary["_id"]) )
+                    timeseriesOk = False
             else:
                 timeseriesOk = True
 
