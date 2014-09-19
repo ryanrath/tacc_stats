@@ -19,10 +19,12 @@ cpu_event_map = {
     CORE_PERF_EVENT(0xD1,0x01) : 'LOAD_OPS_L1_HIT,E', 
     CORE_PERF_EVENT(0xD1,0x02) : 'LOAD_OPS_L2_HIT,E', 
     CORE_PERF_EVENT(0xD1,0x04) : 'LOAD_OPS_LLC_HIT,E', 
-    CORE_PERF_EVENT(0x10,0x90) : 'SSE_D_ALL,E',
-    CORE_PERF_EVENT(0x11,0x02) : 'SIMD_D_256,E',
+    CORE_PERF_EVENT(0x10,0x90) : 'SSE_DOUBLE_ALL,E',
+    CORE_PERF_EVENT(0x11,0x02) : 'SIMD_DOUBLE_256,E',
     CORE_PERF_EVENT(0xA2,0x01) : 'STALLS,E',
     CORE_PERF_EVENT(0x51,0x01) : 'LOAD_L1D_ALL,E',
+    CORE_PERF_EVENT(0x10,0x80) : 'SSE_DOUBLE_SCALAR,E',
+    CORE_PERF_EVENT(0x10,0x10) : 'SSE_DOUBLE_PACKED,E',
     'FIXED0'                   : 'INSTRUCTIONS_RETIRED,E',
     'FIXED1'                   : 'CLOCKS_UNHALTED_CORE,E',
     'FIXED2'                   : 'CLOCKS_UNHALTED_REF,E',
@@ -56,6 +58,7 @@ imc_event_map = {
     IMC_PERF_EVENT(0x04, 0x0C) : 'CAS_WRITES,E',
     IMC_PERF_EVENT(0x01, 0x00) : 'ACT_COUNT,E',
     IMC_PERF_EVENT(0x02, 0x03) : 'PRE_COUNT_ALL,E',              
+    IMC_PERF_EVENT(0x02, 0x01) : 'PRE_COUNT_MISS,E',              
     'FIXED0'                   : 'CYCLES,E',
     }
 ## Power Control Unit events
@@ -74,11 +77,11 @@ pcu_event_map = {
     }
 ## QPI Unit events
 def QPI_PERF_EVENT(event, umask):
-    return (event) | (umask << 8) | (1L << 15) | (0L << 18) | (1L << 21) | (1L << 22) | (0L <<23) | (1L << 24)
+    return (event) | (umask << 8) | (0L << 18) | (1L << 21) | (1L << 22) | (0L <<23)
 ## QPI map
 qpi_event_map = {
-    QPI_PERF_EVENT(0x00, 0x01) : 'G0_IDLE,E',
-    QPI_PERF_EVENT(0x00, 0x04) : 'G0_NON_DATA,E',
+    QPI_PERF_EVENT(0x00, 0x01) : 'TxL_FLITS_G1_SNP,E',
+    QPI_PERF_EVENT(0x00, 0x04) : 'TxL_FLITS_G1_HOM,E',
     QPI_PERF_EVENT(0x02, 0x08) : 'G1_DRS_DATA,E',
     QPI_PERF_EVENT(0x03, 0x04) : 'G2_NCB_DATA,E',              
     }

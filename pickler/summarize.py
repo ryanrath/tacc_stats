@@ -10,8 +10,9 @@ import sys
 import json
 import traceback
 from scipy import stats
+from extra.catastrophe import Catastrophe
 
-SUMMARY_VERSION = "0.9.26"
+SUMMARY_VERSION = "0.9.27"
 
 VERBOSE = False
 
@@ -35,6 +36,19 @@ def removeDotKey(obj):
             obj[new_key] = obj[key]
             del obj[key]
     return obj
+
+def compute_catastrophe(j):
+
+    try:
+        c = Catastrophe()
+        if c.setup(j):
+            c.compute_metric()
+            return c.metric
+        else:
+            return { 'error': 'setup failed' }
+    except Exception as e:
+        return { 'error': "{}".format(e) }
+
 
 def compute_ratio(stats, indices, numerator, denominator, out):
     if numerator in indices and denominator in indices and 'ERROR' not in indices:
@@ -348,10 +362,13 @@ def nativefloatlist(numpyarray):
 
 def gettimeseries(j, indices):
 
+    if len(j.hosts) > 64:
+        return { "hosts": [], "error": { "all": "too many hosts" }, "times": {}, "version": 3, "nodebased": {}, "devicebased": {} }
+
     MEGA = 1024.0 * 1024.0
     GIGA = MEGA * 1024.0
 
-    data = { "hosts": [], "error": {}, "times": {}, "version": 2, "nodebased": {}, "devicebased": {} }
+    data = { "hosts": [], "error": {}, "times": {}, "version": 3, "nodebased": {}, "devicebased": {} }
     nodebased = { "cpuuser": {}, "membw": {}, "memused_minus_diskcache": {}, "simdins": {}, "lnet": {}, "ib_lnet": {} }
     devicebased = { "cpuuser": {} }
 
@@ -400,7 +417,10 @@ def gettimeseries(j, indices):
 
         try:
             if "intel_snb" in host.stats:
-                simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_D_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_D_ALL', indices);
+                if 'SSE_DOUBLE_ALL' in indices['intel_snb']:
+                    simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_DOUBLE_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_ALL', indices)
+                else:
+                    simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_DOUBLE_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_PACKED', indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_SCALAR', indices)
             elif "intel_pmc3" in host.stats:
                 simdins = getinterfacestats(host.stats, "intel_pmc3", "FP_COMP_OPS_EXE_SSE", indices);
             else:
@@ -695,9 +715,13 @@ def summarize(j, lariatcache):
         # flops
         if 'intel_snb' in totals.keys():
 
-            if 'SSE_D_ALL' in totals['intel_snb'] and 'SIMD_D_256' in totals['intel_snb'] and 'ERROR' not in totals['intel_snb']:
-                flops = 4.0 * numpy.array(totals['intel_snb']['SIMD_D_256']) + 2.0 * numpy.array(totals['intel_snb']['SSE_D_ALL'])
-                summaryDict['FLOPS'] = calculate_stats(flops)
+            if 'ERROR' not in totals['intel_snb']:
+                if 'SSE_DOUBLE_ALL' in totals['intel_snb'] and 'SIMD_DOUBLE_256' in totals['intel_snb']:
+                    flops = 4.0 * numpy.array(totals['intel_snb']['SIMD_DOUBLE_256']) + 2.0 * numpy.array(totals['intel_snb']['SSE_DOUBLE_ALL'])
+                    summaryDict['FLOPS'] = calculate_stats(flops)
+                elif 'SSE_DOUBLE_SCALAR' in totals['intel_snb'] and 'SSE_DOUBLE_PACKED' in totals['intel_snb'] and 'SIMD_DOUBLE_256' in totals['intel_snb']:
+                    flops = 4.0 * numpy.array(totals['intel_snb']['SIMD_DOUBLE_256']) + 2.0 * numpy.array(totals['intel_snb']['SSE_DOUBLE_PACKED']) + numpy.array(totals['intel_snb']['SSE_DOUBLE_SCALAR'])
+                    summaryDict['FLOPS'] = calculate_stats(flops)
             else:
                 summaryDict['FLOPS'] = { 'error': 2, "error_msg": 'Counters were reprogrammed during job' }
 
@@ -718,6 +742,9 @@ def summarize(j, lariatcache):
 
         converttooutput(series, summaryDict, j)
         converttooutput(totals, summaryDict, j)
+
+    summaryDict['analysis'] = {}
+    summaryDict['analysis']['catastrophe'] = compute_catastrophe(j)
 
     # add in lariat data
     if lariatcache != None:
