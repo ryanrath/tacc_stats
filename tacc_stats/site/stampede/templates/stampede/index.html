@@ -1,0 +1,152 @@
+<html>
+<head>
+    <title>TACC Stats</title>
+</head>
+<body>
+
+{% if date %}
+<h1>For date: {{ date }}</h1>
+<h2> Charts at a glance </h2>
+<img src="{% url 'stampede:date_summary' date %}" />
+<a href="{% url 'stampede:date_view' date 1 %}" >Dump {{ date }} data</a>
+{% endif %}
+
+{% if uid %}
+<h1>For uid: {{ uid }}</h1>
+<h2> Charts at a glance </h2>
+<img src="{% url 'stampede:uid_summary' uid %}" />
+<a href="{% url 'stampede:uid_view' uid 1 %}" >Dump {{ uid }} data</a>
+{% endif %}
+
+{% if user %}
+<h1>For user: {{ user }}</h1>
+<h2> Charts at a glance </h2>
+<img src="{% url 'stampede:user_summary' user %}" />
+<a href="{% url 'stampede:user_view' user 1 %}" >Dump {{ user }} data</a>
+{% endif %}
+
+{% if project %}
+<h1>For project: {{ project }}</h1>
+<h2> Charts at a glance </h2>
+<img src="{% url 'stampede:project_summary' project %}" />
+<a href="{% url 'stampede:project_view' project 1 %}" >Dump {{ project }} data</a>
+{% endif %}
+
+{% if exe__icontains %}
+<h1>For exe: {{ exe__icontains }}</h1>
+<h2> Charts at a glance </h2>
+<img src="{% url 'stampede:exe_summary' exe__icontains %}" />
+{% if report %}
+<img src="{% url 'stampede:exe_summary' exe__icontains 1 %}" />
+{% endif %}
+<a href="{% url 'stampede:exe_view' exe__icontains 1 %}" >Dump {{ exe__icontains }} data</a>
+{% endif %}
+<h1># Jobs over 1 mn in run time = {{nj}}</h1>
+<hr>
+
+{% if job_list %}
+    <h1>Job Listing</h1>
+<p>Jobs flagged for:
+
+    {% if mem_job_list %}
+     <p> <li>High Water Mark > 30 GB on a Node
+	 <table>
+	 {% for key,values in mem_job_list.items %} 
+	 <tr><td><a href="{% url 'stampede:user_view'  key %}"> {{ key }}</a> </td>
+	   <td>{% for v,d in values %} 
+	      <td><a href="{% url 'stampede:job'  v %}">{{ v }}</a>({{ d }})</td>
+	   {% endfor %}
+	 </td></tr>
+	 {% endfor %}
+	 </table>
+     </li></p>
+     {% endif %}
+
+    {% if idle_job_list %}
+     <p> <li>Idle-ness
+	 <table>
+	 {% for key,values in idle_job_list.items %} 
+	 <tr><td><a href="{% url 'stampede:user_view'  key %}"> {{ key }}</a> </td>
+	   <td>{% for v,d in values %} 
+	      <td><a href="{% url 'stampede:job'  v %}">{{ v }}</a>({{ d }})</td>
+	   {% endfor %}
+	 </td></tr>
+	 {% endfor %}
+	 </table>
+     </li></p>
+     {% endif %}
+
+    {% if cat_job_list %}
+     <p> <li>Catastrophic failure 
+	 <table>
+	 {% for key,values in cat_job_list.items %} 
+	 <tr><td><a href="{% url 'stampede:user_view'  key %}"> {{ key }}</a> </td>
+	   <td>{% for v,d in values %} 
+	      <td><a href="{% url 'stampede:job'  v %}">{{ v }}</a>({{ d }})</td>
+	   {% endfor %}
+	 </td></tr>
+	 {% endfor %}
+	 </table>
+     </li></p>
+    {% endif %}
+
+    {% if cpi_job_list %}
+     <p> <li>High CPI (>{{cpi_thresh}},%{{cpi_per}}) 
+	 <table>
+	 {% for key,values in cpi_job_list.items %} 
+	 <tr><td><a href="{% url 'stampede:user_view'  key %}"> {{ key }}</a> </td>
+	   <td>{% for v,d in values %} 
+	     <td> <a href="{% url 'stampede:job'  v %}">{{ v }}</a>({{ d }})</td>
+	   {% endfor %}
+	 </td></tr>
+	 {% endfor %}
+	 </table>
+     </li> </p>
+    {% endif %}
+</p>
+
+    <table border="1" cellpadding="5" style=font-family:"arial" width:"100%">
+        <tr>
+	  <th> Job ID </th>
+	  <th> UID </th>
+	  <th> user </th>	  
+	  <th> project </th>
+	  <th> executable </th>
+	  <th> start time </th>
+	  <th> end time </th>
+	  <th> run time (s)</th>
+	  <th> queue </th>
+	  <th> name </th>
+	  <th> status </th>
+	  <th> wayness </th>
+	  <th> cores </th>
+	  <th> nodes </th>
+	  <th> cpi </th>
+	</tr>
+    {% for job in job_list %}
+        <tr bgcolor="{{job.color}}">
+            <td><a href="{% url 'stampede:job'  job.id %}">{{ job.id }}</a>
+            <td><a href="{% url 'stampede:uid_view' job.uid %}" >{{ job.uid }}</td>
+            <td><a href="{% url 'stampede:user_view' job.user %}" >{{ job.user }}</td> 
+           <td align=right><a href="{% url 'stampede:project_view' job.project %}" >{{ job.project }}</td>
+            <td align=right><a href="{% url 'stampede:exe_view' job.exe %}" >{{ job.exe }}</td>
+
+            <td align=right>{{ job.start_time }}</td>
+            <td align=right>{{ job.end_time }}</td>
+            <td align=right>{{ job.run_time }}</td>
+            <td align=right>{{ job.queue }}</td>
+            <td align=right>{{ job.name }}</td>
+            <td align=right>{{ job.status }}</td>
+            <td align=right>{{ job.wayness }}</td>
+            <td align=right>{{ job.cores }}</td>
+            <td align=right>{{ job.nodes }}</td>
+            <td align=right>{{ job.cpi }}</td>
+        </tr>
+    {% endfor %} 
+    </table>
+{% else %}
+    <p>No jobs are available.</p>
+{% endif %}
+
+</body>
+</html>

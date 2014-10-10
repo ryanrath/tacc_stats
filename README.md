@@ -5,27 +5,30 @@ Authors
 -------
 Bill Barth     (<mailto:bbarth@tacc.utexas.edu>)    
 R. Todd Evans  (<mailto:rtevans@tacc.utexas.edu>)  
-John Hammond   (<mailto:jhammond@tacc.utexas.edu>)  
-Andy R. Terrel (<mailto:aterrel@tacc.utexas.edu>)  
 
 
 Executive Summary
 -----------------
-The tacc_stats repository consists of two complemetary components:
+The tacc_stats repository consists of four complementary modules:
 
-1. `tacc_stats` is a C based job-oriented and logically structured version of the
+1. `monitor` is a C-based job-oriented and logically structured version of the
 conventional sysstat system monitor.  
 
-2. `job_pickles.py` is a Python based code that collects the raw stats 
-data in a specified time range into a 
-job-based pickled Python dictionary.
+2. `pickler` is a Python module that collects the node-based raw stats 
+data into job-based pickled Python dictionaries.
 
+3. `analysis` is a Python module that runs over a job list performing tests, computing metrics, and 
+generating plots. 
+
+4. `site` is a Python module based on Django that builds a database and 
+website that allows exploration and visualization of data at the job, user, project, application,
+and/or system level.
 
 Code Access
 -----------
 To get access to the tacc_stats source code 
 
-    git clone https://github.com/billbarth/tacc_stats.git
+    git clone https://github.com/rtevans/tacc_stats
 
 
 ----------------------------------------------------------------------------
@@ -33,73 +36,121 @@ To get access to the tacc_stats source code
 Building
 --------
 ### Quickstart
-Type these commands from the top of the tacc_stats
-source directory to quickly build and install.  The
-executables will be placed in `bin/`.
+These commands quickly build and install the TACC Stats package into your
+'~/.local/' directory.  You should customize the tacc_stats/setup.cfg file
+for your system.  
+~~~
+    $ git clone https://github.com/rtevans/tacc_stats
+    $ pip install --user -e tacc_stats
+~~~
+Scripts and executables will be installed in 
+'~/.local/bin' and Python modules in '~/.local/lib'.
 
-    $ mkdir build
-    $ cd build
-    $ ../do_configure.sh
-    $ make install
+The `monitor` script must be run as root to read all register files.
 
 ### Detailed Install
 
-1. *Introduction:*
-The build system is based on CMake.  It configures the C and Python
-routines for a particular computing platform.  The configure process 
-specifies both desired directories to store and read tacc_stats
-generated data from, and a list of device types from which to monitor.
+1. *Introduction*
+The build system is based on `distutils`.  It configures the C extensions 
+and Python modules for a particular site.  The configure file 
+`setup.cfg` should be customized for your specific system before installation.
+The installation will place a number of scripts into the Python `bin`
+directory and the modules in the Python `lib` directory.
 
-2. *Configure:*
-All configuring should be specified in the `do_configure.sh` 
-script. The meaning of every field is specified in this script.
-The first part of the script specifies paths to locations where
-tacc_stats data is read and stored from.  These will be system
-specific.  The location of the python version to use, host name, and
-batch system should also be specified here.
-The second part of the script specifies which devices to monitor by 
-building up a list labeled `TYPES`.  `TYPES` that are commented out will
-be ignored.  If the system is missing any `TYPES` under the Chip types
-section, that type will automatically be skipped during the monitoring.
-All paths and types are set in the do_configure.sh.  Once this script is set,
- make a directory to build the code.  
-This directory should be made in the top-level source
-directory, e.g. `tacc_stats/`.  From this directory `do_configure.sh` should then 
-be called:
+2. *Configure*
+All configuring should be specified in the `setup.cfg` 
+file. The meaning of every field  in the `[PATH]` section is specified here:
 
-    $ mkdir build
-    $ cd build
-    $ ../do_configure.sh
-At this point the code will be configured for the system.
+    `stats_dir`          The directory that `monitor` writes to
 
-3. *Build:*
-From with the build directory type `make install`.  This will compile
-tacc_stats, then place the executable `tacc_stats` and all useful scripts into the 
-`bin/` directory in the top level source directory.  The python
-modules which support the executable scripts will be placed in the
-`include/` directory in the top level source directory.
-The executables typically used are `tacc_stats`, `job_pickles.py`, and 
-`do_job_pickles_cron.sh`.  `tacc_stats` is typically invoked in the
-prologue of the batch system and `cron_tab` file on each node.
-`do_job_pickles.sh` is typically invoked from a `cron_tab` file and pickles
-jobs over the previous 24 hr period, storing the pickled data into
-the `pickles_dir` specified in `do_configure.sh`.   
+    `stats_lock`         The file that `monitor` uses to lock during counter reads
 
+    `jobid_file`         The file that contains the Job ID of the currently monitored job
+
+    `tacc_stats_home`    The directory in which `archive` (all node-based data) will be contained
+
+    `acct_path`          The accounting file generated by the job scheduler
+
+    `host_list_dir`      The directory than contains each job's host list
+
+    `python_path`        The path to the Python installation used
+
+    `batch_system`       SLURM or SGE are currently supported
+
+    `host_name_ext`      The extension of the hostnames, e.g. stampede.tacc.utexas.edu
+
+    `pickles_dir`        The directory the pickles files will be stored to and read from.
+
+    `lariat_path`        The directory the lariat data (if any) is read from.
+
+    The `[TYPES]` section lists the devices that are currently readable.
+    They are set to True or False depending on whether they are on the
+    system.  If the computing platform is missing any `TYPES` that are left as True that type 
+    will automatically be skipped during the monitoring.
+
+3. *Build*
+There are currently three approaches to building and installing the package.
+
+    1) `pip`,`easy_install`, or `python setup.py install`: install all perform the same build and 
+    install steps.  The package entire is installed using this approach.
+
+    2) `python setup.py bdist_rpm`: this builds an rpm in the `tacc_stats/dist`
+    directory.  The rpm will install the entire package and place a setuid'd root
+    version of monitor called `tacc_stats` in `/opt/tacc_stats`.  It will also modify
+    crontab to run `tacc_stats` every 10 minutes (configurable) and run `archive.sh`
+    every night at a random time between 2am and 4am.  `archive.sh` copies the data
+    in `stats_dir` to `tacc_stats_home`.  It is used at TACC to move data from local
+    storage on the compute nodes to a central filesystem location.
+
+    3) `python setup.py bdist_rpm --monitor-only`: this builds an rpm in the `tacc_stats/dist`
+    directory.  The rpm will install only the `monitor` package and place a setuid'd root
+    version of monitor called `tacc_stats` in `/opt/tacc_stats`.  It will also modify
+    crontab to run `tacc_stats` every 10 minutes (configurable) and run `archive.sh`
+    every night at a random time between 2am and 5am. This is a light-weight option
+    most suitable for installations to the compute nodes.
+
+    The first two installation methods are most suited to analysis nodes.  They are
+    reasonable heavyweight and require several Python packages.  The third approach is
+    extremely light-weight and requires only a Python installation.  Both rpm based
+    methods set `tacc_stats` and `archive.sh` running automatically.
 
 ----------------------------------------------------------------------------
 
 Running
 -------
-tacc_stats has two complemetary components.  The first component is a light-weight C 
-code called `tacc_stats`, initially called to configure Performance Monitoring Counter registers 
-for specific events before a job is begun.  As the job is running the code is 
-repeatedly called to collect the counter registers values at regular time 
-intervals (specified for example in a `cron_tab` file).  This counter data is 
-stored in "raw stats" files.  
+Installation method 3 can be used for compute nodes.  In order for 
+tacc_stats to correcly label records with JOBIDs it is required that
+the job scheduler prolog and epilog contain the lines 
 
-The second component is based the Python code `job_pickles.py`, 
-performed off line.  The Python codes processes the raw stats files into 
-python dictionaries meant to ease analysis of the stats data.
+`echo $JOBID > jobid_file`  
+`tacc_stats begin $JOBID`
+
+and 
+
+`tacc_stats end $JOBID`
+`echo 0 > jobid_file`
+
+respectively.  To perform the pickling of this data it is also necessary to 
+generate an accounting file that contains at least the JOBID and time range 
+that the job ran.  The pickling will currently work without modification on 
+SGE job schedulers.  It will also work on any accounting file with the format
+
+`$JOBID : UID : Project ID : Junk : Start time : End time : Time place in queue : SLURM partition : Junk : Job name : Job completion status : Nodes : Cores`
+
+for each record using the SLURM interface.  In addition to the accounting file,
+a directory of host-file logs (hosts belonging to a particular job) must be
+generated.  The accounting file and host-file logs are used to map JOBID's to 
+time and node ranges so that the job-level data can be extracted from the
+raw data efficiently.
+
+
+
+As mentioned above the `monitor` module produces a light-weight C 
+code called `monitor` which is setuid'd to `/opt/tacc_stats/tacc_stats`.  It is called at the beginning of every job to configure Performance Monitoring Counter registers
+for specific events.  As the job is running tacc_stats is called at regular intervals (the default is 10 mn) to collect the counter registers values at regular time 
+intervals.  This counter data is stored in "raw stats" files.  These
+stats files are node-level data labeled by JOBID and may or may not be
+locally stored, but must be visible to the node as a mount.
 
 ### Running `tacc_stats`
 
@@ -146,23 +197,20 @@ these files do not survive a reboot.
 ### Running `job_pickles.py`
 `job_pickles.py` can be run manually by:
 
-    $ ./job_pickles.py path_to_pickles/ date_start date_end
+    $ ./job_pickles.py [-start date_start] [-end date_end] [-dir directory] [-jobids id0 id1 ... idn]
 
-where the 3 required arguments have the following meaning
+where the 4 optional arguments have the following meaning
 
-  - `path_to_pickles/`: the directory to store pickled dictionaries
-  - `date_start`      : the start of the date range, e.g. `"2013-09-25 04:00:00"`
-  - `date_end`        : the end of the date range, e.g. `"2013-09-26   05:00:00"`
-
-One could also run
-
-    $ ./do_job_pickles_cron.sh
-
-to pickle all raw stats data in the 24 hour period `yesterday` to `today`.  On Stampede
-this script is invoked every 24 hours using a `crontab` file.
+  - `-dir`       : the directory to store pickled dictionaries
+  - `-start`     : the start of the date range, e.g. `"2013-09-25 00:00:00"`
+  - `-end`       : the end of the date range, e.g. `"2013-09-26   00:00:00"`
+  - `jobids`     : individual jobids to pickle
+  - 
+No arguments results in all jobs from the previous day getting pickled and stored in the `pickles_dir`
+defined in `setup.cfg`. On Stampede argumentless `job_pickles.py` is run every 24 hours as a `cron` job.
 
 For pickling data with Intel Sandy Bridge core and uncore counters it is useful to
-modify the event_map dictionaries in `intel_snb.py` to include whatever events you are counting.  The dictionaries map a control register value to a Schema name.  
+modify the event_map dictionaries in `intel_snb.py` to include whatever events you are counting.The dictionaries map a control register value to a Schema name.  
 You can have events in the event_map dictionaries that you are not counting,
 but if missing an event it will be labeled in the Schema with it's control register
 value.
@@ -270,13 +318,13 @@ The `TYPES` that can be collected are:
   ~~~
 
 The `TYPES` to include in a build of tacc_stats are specified in 
-the `do_configure.sh` list `TYPES`.  To add a new `TYPE` to tacc_stats,
-write the appropriate `TYPENAME.c` file and place it in the monitor directory.
+the `setup.cfg` list `TYPES`.  To add a new `TYPE` to tacc_stats,
+write the appropriate `TYPENAME.c` file and place it in the `src/monitor/` directory.
 Then add the `TYPENAME` to the `TYPES` list.
  
 For the keys associated with each `TYPE`, see the appropriate schema.
 For the source and meanings of the counters, see the tacc_stats source
-`https://github.com/bbarth/tacc_stats`, the CentOS 5.6 kernel source,
+`https://github.com/rtevans/tacc_stats`, the CentOS 5.6 kernel source,
 especially `Documentation/*`, and the manpages, especially proc(5).
 
 I have not tracked down the meanings of all counters.  However, if I
