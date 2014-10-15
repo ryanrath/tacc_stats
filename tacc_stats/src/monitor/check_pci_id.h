@@ -13,6 +13,9 @@ static int check_pci_id(char * bus_dev, int id) {
   int rc = 0;
   snprintf(pci_path, sizeof(pci_path), "/proc/bus/pci/%s", bus_dev);
   pci_fd = open(pci_path, O_RDONLY);
+  if( pci_fd == -1 ) {
+      goto out;
+  }
   if (pread(pci_fd, &pci_vendor, sizeof(pci_vendor), 0x00) < 0 
       || pread(pci_fd, &pci_device, sizeof(pci_device), 0x02) < 0) {
     ERROR("cannot read device vendor and id: %m\n");

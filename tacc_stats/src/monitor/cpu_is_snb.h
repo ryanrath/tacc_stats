@@ -3,20 +3,7 @@
   \brief Check CPUID vendor and signature.  
  */
 
-//! Get CPU signature
-static void get_cpuid_signature(int cpuid_file, char* signature, size_t sigbuflen)
-{
-  int ebx = 0, ecx = 0, edx = 0, eax = 1;
-  __asm__ ("cpuid": "=b" (ebx), "=c" (ecx), "=d" (edx), "=a" (eax):"a" (eax));
-
-  int model = (eax & 0x0FF) >> 4;
-  int extended_model = (eax & 0xF0000) >> 12;
-  int family_code = (eax & 0xF00) >> 8;
-  int extended_family_code = (eax & 0xFF00000) >> 16;
-
-  snprintf(signature,sigbuflen,"%02x_%x", extended_family_code | family_code, extended_model | model);
-
-}
+#include "get_cpuid.h"
 
 //! Test if signature is Sandy Bridge
 static int cpu_is_sandybridge(char *cpu)

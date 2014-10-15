@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include "stats.h"
 #include "trace.h"
+#include "get_cpuid.h"
 
 // Westmere microarchitectures have signature 06_25,06_2c,06_1f with non-architectural events
 // listed in Table 19-11.
@@ -83,19 +84,6 @@ in post processing
   X(PERF_GLOBAL_OVF_CTRL, "C", "")
 */
 
-static void get_cpuid_signature(int cpuid_file, char* signature, size_t sigbuflen)
-{
-  int ebx = 0, ecx = 0, edx = 0, eax = 1;
-  __asm__ ("cpuid": "=b" (ebx), "=c" (ecx), "=d" (edx), "=a" (eax):"a" (eax));
-
-  int model = (eax & 0x0FF) >> 4;
-  int extended_model = (eax & 0xF0000) >> 12;
-  int family_code = (eax & 0xF00) >> 8;
-  int extended_family_code = (eax & 0xFF00000) >> 16;
-
-  snprintf(signature,sigbuflen,"%02x_%x", extended_family_code | family_code, extended_model | model);
-
-}
 static int cpu_is_westmere(char *cpu)
 {
   char cpuid_path[80];
