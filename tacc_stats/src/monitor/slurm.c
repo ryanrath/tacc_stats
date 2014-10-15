@@ -7,6 +7,69 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifndef CGROUPS_PATH
+#define CGROUPS_PATH "/cgroup/cpuset/slurm"
+#endif 
+
+#define PATH_BUFLEN 10240
+
+int parse_slurm_cgroups(struct stats_file *sf)
+{
+    struct dirent *ent, *sub;
+    char path[PATH_BUFLEN];
+    DIR *cgroupdir, *jobdir;
+    FILE *fd;
+
+    unsigned int uid, jobid;
+    char *cpuset;
+    size_t cpusetlen;
+
+    cgroupdir = opendir(CGROUPS_PATH);
+
+    if(!cgroupdir) 
+    {
+        return -1;
+    }
+
+    cpuset = NULL;
+    cpusetlen = 0;
+
+    while( (ent = readdir(cgroupdir) ) != NULL ) 
+    {
+        if(sscanf( ent->d_name, "uid_%u", &uid) == 1 )
+        {
+            snprintf(path, PATH_BUFLEN, CGROUPS_PATH "/%s", ent->d_name);
+
+            jobdir = opendir(path);
+            if(jobdir) 
+            {
+                while( ( sub = readdir(jobdir) ) != NULL ) 
+                {
+                    if( sscanf( sub->d_name, "job_%u", &jobid ) == 1 ) 
+                    {
+                        snprintf(path, PATH_BUFLEN, CGROUPS_PATH "/%s/%s/cpuset.cpus", ent->d_name, sub->d_name);
+                        fd = fopen(path, "r");
+                        if(fd)
+                        {
+                            if( getline(&cpuset, &cpusetlen, fd) != -1 ) {
+                                // Note the trailing line feed on the cpuset string is not outputted
+                                stats_file_mark(sf, "slurm %u %u %.*s", uid, jobid, strlen(cpuset)-1, cpuset);
+                            }
+                            fclose(fd);
+                        }
+                    }
+                }
+                closedir(jobdir);
+            }
+        }
+    }
+
+    closedir(cgroupdir);
+    free(cpuset);
+
+    return (cpusetlen == 0);
+}
+
 /* Gets the current job ids that are running based on the files provided by
  * Slurm in a specific directory */
 int get_slurm_jobids(char *current_jobid)
