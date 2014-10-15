@@ -179,14 +179,35 @@ int stats_file_open(struct stats_file *sf, const char *path)
 
 int stats_file_mark(struct stats_file *sf, const char *fmt, ...)
 {
-  /* TODO Concatenate new mark with old. */
+  char *tmp = NULL;
   va_list args;
   va_start(args, fmt);
 
-  if (vasprintf(&sf->sf_mark, fmt, args) < 0)
-    sf->sf_mark = NULL;
+  if (vasprintf(&tmp, fmt, args) < 0) {
+    tmp = NULL;
+  }
 
   va_end(args);
+
+  if(!tmp) {
+    return -1;
+  }
+
+  if(sf->sf_mark) {
+    /* Concatenate new mark with existing */
+    sf->sf_mark = realloc(sf->sf_mark, strlen(sf->sf_mark) + 1 + 1 + strlen(tmp));
+    if(!sf->sf_mark) {
+        free(tmp);
+        return -1;
+    }
+
+    strcat(sf->sf_mark, "\n");
+    strcat(sf->sf_mark, tmp);
+    free(tmp);
+  }
+  else {
+    sf->sf_mark = tmp;
+  }
 
   return 0;
 }
@@ -207,7 +228,7 @@ int stats_file_close(struct stats_file *sf)
     const char *str = sf->sf_mark;
     while (*str != 0) {
       const char *eol = strchrnul(str, '\n');
-      sf_printf(sf, "%c%*s\n", SF_MARK_CHAR, (int) (eol - str), str);
+      sf_printf(sf, "%c%.*s\n", SF_MARK_CHAR, (int) (eol - str), str);
       str = eol;
       if (*str == '\n')
         str++;
