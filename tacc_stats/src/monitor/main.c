@@ -14,10 +14,12 @@
 #include "stats_file.h"
 #include "trace.h"
 #include "pscanf.h"
+#include "slurm.h"
+#include "procdump.h"
 
 struct timeval tp;
 double current_time;
-char current_jobid[80] = "0";
+char current_jobid[10240] = "0";
 int nr_cpus;
 
 static void alarm_handler(int sig)
@@ -148,7 +150,11 @@ int main(int argc, char *argv[])
   gettimeofday(&tp,NULL);
   current_time = tp.tv_sec+tp.tv_usec/1000000.0;
 
+#ifdef HAS_SLURM_EXTENSION
+  get_slurm_jobids(current_jobid);
+#else
   pscanf(JOBID_FILE_PATH, "%79s", current_jobid);
+#endif
   nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
   if (mkdir(STATS_DIR_PATH, 0777) < 0) {
@@ -219,6 +225,14 @@ int main(int argc, char *argv[])
   else if (cmd == cmd_begin || cmd == cmd_end)
     /* On begin set mark to "begin JOBID", and similar for end. */
     stats_file_mark(&sf, "%s %s", cmd_str, arg_count > 0 ? arg_list[0] : "-");
+
+#ifdef HAS_SLURM_EXTENSION
+  (void) parse_slurm_cgroups(&sf);
+#endif
+
+#ifdef HAS_PROCDUMP_EXTENSION
+  collect_proc(&sf);
+#endif
 
   if (stats_file_close(&sf) < 0)
     rc = 1;

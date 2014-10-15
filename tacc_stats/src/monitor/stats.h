@@ -11,7 +11,7 @@
 #define SCHEMA_DEF(k,o,d,r...) " " #k "," o
 
 extern double current_time;
-extern char current_jobid[80];
+extern char current_jobid[10240];
 extern int nr_cpus;
 
 struct stats_type {
