@@ -143,8 +143,9 @@ def read_site_cfg():
         
     paths = dict(config.items('PATHS'))
     types = dict(config.items('TYPES'))
+    extensions = dict(config.items('EXTENSIONS')) if config.has_section('EXTENSIONS') else {}
 
-    return paths,types
+    return paths,types,extensions
 
 def write_stats_x(types):
 
@@ -229,7 +230,7 @@ class CleanCommand(Command):
             except Exception:
                 pass
 
-paths,types = read_site_cfg()
+paths,types,extensions = read_site_cfg()
 write_stats_x(types)
 write_cfg_file(paths)
 
@@ -266,6 +267,11 @@ define_macros=[('STATS_DIR_PATH','\"'+paths['stats_dir']+'\"'),
                ('STATS_LOCK_PATH','\"'+paths['stats_lock']+'\"'),
                ('JOBID_FILE_PATH','\"'+paths['jobid_file']+'\"')]
              
+for ext,enabled in extensions.iteritems():
+    if enabled == 'True':
+        define_macros.append( ( 'HAS_' + ext.upper() + "_EXTENSION", 1) )
+        sources.append(pjoin(root, ext+'.c') )
+
 flags = ['-D_GNU_SOURCE','-DDEBUG','-Wp,-U_FORTIFY_SOURCE',
          '-O3','-Wall','-g']
 ext_data=dict(sources=sources,
