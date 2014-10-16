@@ -53,7 +53,7 @@ int parse_slurm_cgroups(struct stats_file *sf)
                         {
                             if( getline(&cpuset, &cpusetlen, fd) != -1 ) {
                                 // Note the trailing line feed on the cpuset string is not outputted
-                                stats_file_mark(sf, "slurm %u %u %.*s", uid, jobid, strlen(cpuset)-1, cpuset);
+                                stats_file_mark(sf, "slurm %u %u %.*s", uid, jobid, (int) strlen(cpuset)-1, cpuset);
                             }
                             fclose(fd);
                         }

@@ -18,7 +18,7 @@
 
 struct timeval tp;
 double current_time;
-char current_jobid[80] = "0";
+char current_jobid[10240] = "0";
 int nr_cpus;
 
 static void alarm_handler(int sig)
