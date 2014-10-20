@@ -90,7 +90,7 @@ static int cpu_is_westmere(char *cpu)
   int cpuid_fd = -1;
   uint32_t buf[4];
   int rc = 0;
-  char signature[5];
+  char signature[6];
 
   /* Open /dev/cpuid/cpu/cpuid. */
   snprintf(cpuid_path, sizeof(cpuid_path), "/dev/cpu/%s/cpuid", cpu);

@@ -130,7 +130,7 @@ void collect_proc(struct stats_file *sf)
             size_t n;
             if ( 0 < getline( &s, &n, f ) ) {
                 /* and store them in the tacc_stats log */
-                stats_file_mark( sf, "procdump %.*s", (int) strlen(s) - 1, s );
+                stats_file_mark( sf, "procdump %.*s", (int) strlen(s), s );
                 free( s );
             }
             fclose( f );
