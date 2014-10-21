@@ -441,6 +441,7 @@ def gettimeseries(j, indices):
         except KeyError:
             nodebased["memused_minus_diskcache"][hostidx] = { "error": 2 }
 
+        lnet_abs = None
         try:
             lnet_abs = getinterfacestats(host.stats, "lnet", "tx_bytes", indices) + getinterfacestats(host.stats, "lnet", "rx_bytes", indices)
             lnet = numpy.diff(lnet_abs) / MEGA
@@ -449,7 +450,9 @@ def gettimeseries(j, indices):
             nodebased["lnet"][hostidx] = { "error": 2 }
 
         try:
-            ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices) - lnet_abs
+            ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices)
+            if lnet_abs != None:
+                ib_net =- lnet_abs
             ib_lnet = numpy.diff(ib_lnet) / MEGA
             nodebased["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
         except KeyError:
