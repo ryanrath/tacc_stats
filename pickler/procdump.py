@@ -86,7 +86,12 @@ class ProcDump:
         if len(indata) < 40:
             return
 
-        decoded = StringIO.StringIO(base64.b64decode(indata[11:]))
+        if indata.startswith("% procdump "):
+            slicestart = 11
+        else:
+            slicestart = 10
+
+        decoded = StringIO.StringIO(base64.b64decode(indata[slicestart:]))
         gzo = gzip.GzipFile(mode="rb",fileobj=decoded)
 
         (START, STATUS_LEN, STATUS_NAME, UIDSEARCH, CMDLINE_LEN, CMDLINE_NAME) = range(6)
@@ -174,15 +179,15 @@ def getProcdumpData( filename, jid ):
                     if jid in jobs:
                         running = True
                 # test if it is starting
-                if line.startswith("% begin"):
-                    if line.strip().split()[2] == jid:
+                if re.match("% *begin", line) != None:
+                    if line.strip().split()[-1] == jid:
                         running = True
                 # test if it is ending
-                if line.startswith("% end"):
-                    if line.strip().split()[2] == jid:
+                if re.match("% *end", line) != None:
+                    if line.strip().split()[-1] == jid:
                         ending = True
                 # test if its a procdump line and job is running
-                if line.startswith("% procdump") and (running or ending):
+                if re.match("% *procdump", line) != None and (running or ending):
                     procParser.parse(line)
                     if ending:
                         break
