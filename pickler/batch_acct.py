@@ -193,7 +193,7 @@ class SLURMNativeAcct(BatchAcct):
   """ flags. """
   """ SLURM_TIME_FORMAT=%s """
   """ sacct --allusers --parsable2 --noheader --allocations --allclusters      """
-  """     --format jobid,cluster,partition,account,group,gid,user,uid,submit,eligible,start,end,exitcode,State,nnodes,ncpus,reqcpus,nodelist,jobname """
+  """     --format jobid,cluster,partition,account,group,gid,user,uid,submit,eligible,start,end,exitcode,State,nnodes,ncpus,reqcpus,nodelist,jobname,timelimit """
   """     --state CA,CD,F,NF,TO """
 
   def __init__(self,acct_file,host_name_ext):
@@ -217,7 +217,8 @@ class SLURMNativeAcct(BatchAcct):
       ('ncpus',                       int, 'Number of cpus'),
       ('reqcpus',                     int, 'Number of cores requested'),
       ('node_list',                   str, 'Nodes used in job'),
-      ('jobname',                     str, 'Job name')
+      ('jobname',                     str, 'Job name'),
+      ('timelimit',                   str, 'Assigned time limit')
       )
 
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
