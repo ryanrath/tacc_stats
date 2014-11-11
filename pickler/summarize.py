@@ -12,7 +12,7 @@ import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
 
-SUMMARY_VERSION = "0.9.27"
+SUMMARY_VERSION = "0.9.28"
 
 VERBOSE = False
 
@@ -730,6 +730,12 @@ def summarize(j, lariatcache):
 
         # TODO Nehalem/Westmere flops
 
+
+        # TODO - make this stuff configurable
+        if 'lnet' in totals.keys() and 'rx_bytes' in totals['lnet'] and '-' in totals['lnet']["rx_bytes"]:
+            if 'ib_sw' in totals.keys() and "rx_bytes" in totals['ib_sw'] and 'mlx4_0/1' in totals['ib_sw']["rx_bytes"]:
+                mpitraff = numpy.array(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) -  numpy.array(totals['lnet']["rx_bytes"]['-'])
+                summaryDict['mpirx'] = calculate_stats(mpitraff);
 
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
