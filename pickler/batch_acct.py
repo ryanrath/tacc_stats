@@ -9,6 +9,10 @@ def factory(kind,acct_file,host_name_ext=''):
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
 
+def special_char_stripper(fp):
+   for line in fp:
+      yield line.replace('\r', '')
+
 class BatchAcct(object):
 
   def __init__(self,batch_kind,acct_file,host_name_ext,delimiter=":"):
@@ -38,7 +42,7 @@ class BatchAcct(object):
         if seek:
             file.seek(seek, os.SEEK_SET)
 
-        for d in csv.DictReader(file, delimiter=self.delimiter, fieldnames=self.field_names):
+        for d in csv.DictReader(special_char_stripper(file), delimiter=self.delimiter, fieldnames=self.field_names):
           try:
             for n, t, x in self.fields:
               d[n] = t(d[n])
