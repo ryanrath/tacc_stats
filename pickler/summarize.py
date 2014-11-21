@@ -734,8 +734,11 @@ def summarize(j, lariatcache):
         # TODO - make this stuff configurable
         if 'lnet' in totals.keys() and 'rx_bytes' in totals['lnet'] and '-' in totals['lnet']["rx_bytes"]:
             if 'ib_sw' in totals.keys() and "rx_bytes" in totals['ib_sw'] and 'mlx4_0/1' in totals['ib_sw']["rx_bytes"]:
-                mpitraff = numpy.array(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) -  numpy.array(totals['lnet']["rx_bytes"]['-'])
-                summaryDict['mpirx'] = calculate_stats(mpitraff);
+                if len(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) == len(totals['lnet']["rx_bytes"]['-']):
+                    mpitraff = numpy.array(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) -  numpy.array(totals['lnet']["rx_bytes"]['-'])
+                    summaryDict['mpirx'] = calculate_stats(mpitraff);
+                else:
+                    summaryDict['mpirx'] = { 'error': 2, 'error_msg': 'missing ib_sw or lnet data points' }
 
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
