@@ -452,7 +452,7 @@ def gettimeseries(j, indices):
         try:
             ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices)
             if lnet_abs != None:
-                ib_net =- lnet_abs
+                ib_lnet -= lnet_abs
             ib_lnet = numpy.diff(ib_lnet) / MEGA
             nodebased["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
         except KeyError:
