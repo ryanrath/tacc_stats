@@ -702,6 +702,19 @@ def summarize(j, lariatcache):
     if statsOk:
         timeseries = gettimeseries(j,indices)
 
+        # cpu usage
+        totalcpus = numpy.array(totals['cpu']['all'])
+        summaryDict['cpuall'] = calculate_stats(totalcpus)
+        if min(totalcpus) < 90.0 or max(totalcpus) > 105.0:
+            summaryDict['Error'].append("Corrupt CPU counters")
+            statsOk = False
+        else:
+            for interface, cdata in totals['cpu'].iteritems():
+                if interface != "all":
+                    v = calculate_stats( numpy.array(cdata) / totalcpus )
+                    addmetrics(summaryDict,j.overflows, "cpu", interface, v)
+
+    if statsOk:
         for mname, mdata in corederived.iteritems():
             # Store CPI per core
             if len(mdata) > 0:
@@ -740,16 +753,6 @@ def summarize(j, lariatcache):
                 else:
                     summaryDict['mpirx'] = { 'error': 2, 'error_msg': 'missing ib_sw or lnet data points' }
 
-        # cpu usage
-        totalcpus = numpy.array(totals['cpu']['all'])
-        summaryDict['cpuall'] = calculate_stats(totalcpus)
-        if min(totalcpus) < 90.0:
-            summaryDict['Error'].append("Corrupt CPU counters")
-        else:
-            for interface, cdata in totals['cpu'].iteritems():
-                if interface != "all":
-                    v = calculate_stats( numpy.array(cdata) / totalcpus )
-                    addmetrics(summaryDict,j.overflows, "cpu", interface, v)
         del totals['cpu']
 
         converttooutput(series, summaryDict, j)
