@@ -749,7 +749,11 @@ def summarize(j, lariatcache):
             if 'ib_sw' in totals.keys() and "rx_bytes" in totals['ib_sw'] and 'mlx4_0/1' in totals['ib_sw']["rx_bytes"]:
                 if len(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) == len(totals['lnet']["rx_bytes"]['-']):
                     mpitraff = numpy.array(totals['ib_sw']["rx_bytes"]['mlx4_0/1']) -  numpy.array(totals['lnet']["rx_bytes"]['-'])
-                    summaryDict['mpirx'] = calculate_stats(mpitraff);
+                    stats = calculate_stats(mpitraff)
+                    if stats['min'] < 0.0:
+                        summaryDict['mpirx'] = { 'error': 2, 'error_msg': 'lnet counts exceed ib counts' }
+                    else:
+                        summaryDict['mpirx'] = calculate_stats(mpitraff);
                 else:
                     summaryDict['mpirx'] = { 'error': 2, 'error_msg': 'missing ib_sw or lnet data points' }
 
