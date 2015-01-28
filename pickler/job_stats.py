@@ -650,6 +650,10 @@ class Job(object):
                                 self.edit_flags.append("(time %d, host `%s', type `%s', dev `%s', key `%s')" %
                                                    (self.times[i],host.name,type_name,dev_name,e.key))
                             fudged = True
+                        elif type_name == 'net' and (dev_name == 'mic0' or dev_name == 'mic1') and i == (len(self.times)-1):
+                            # mic counters are reset at the end of a job ignore the last datapoint
+                            v = p
+                            fudged = True
 
                         if type_name not in ['ib', 'ib_ext'] and (fudged == False):
                             width = e.width if e.width else 64
