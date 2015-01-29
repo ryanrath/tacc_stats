@@ -279,7 +279,8 @@ def addinstmetrics(summary, overflows, device, interface, instance, values):
     data = values
 
     if COMPACT_OUTPUT and 'avg' in values and values['avg'] == 0.0:
-        return
+        # Don't bother including redundant information
+        data = { 'avg': 0.0 }
 
     if device in overflows and interface in overflows[device] and instance in overflows[device][interface]:
         data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(overflows[device][interface][instance]) }
