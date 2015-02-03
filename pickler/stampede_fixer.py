@@ -20,7 +20,7 @@ class StampedeAccountFixer:
         if self.lastfields != 0:
             raise Exception("Discarding data on line: {}".format(self.linenumber))
 
-        self.writer.writerow(tokens)
+        self.writer.writerow([s.encode("utf-8") for s in tokens])
 
     def addline(self, line):
         self.addtokens(line.strip().split(self.delimiter))
@@ -31,6 +31,7 @@ class StampedeAccountFixer:
         self.linenumber = 0
         with open(self.infilename, "rb") as fp:
             for line in fp:
+                line = line.decode("utf-8", errors="ignore")
                 self.linenumber += 1
                 fields = line.count(self.delimiter)
                 if fields < self.expectedfields:
