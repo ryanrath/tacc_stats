@@ -129,6 +129,9 @@ def ingest(config, end_time, start_time = None):
 
     for resourcename,resource in config['resources'].iteritems():
 
+        if 'enabled' in resource and resource['enabled'] == False:
+            continue
+
         if start_time == None:
             start_time = dbif.getmostrecent( resource['resource_id'] )
             if start_time == None:
