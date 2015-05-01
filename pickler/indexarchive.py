@@ -1,18 +1,19 @@
 #!/usr/bin/python
 import gzip
-import sys
-import base64
-import StringIO
 import re
 import os
+import json
 
+from account import DbInterface
 import MySQLdb as mdb
+import MySQLdb.cursors
 
 class DataSqlStore:
-    def __init__(self, dbname, mydefaults):
+    def __init__(self, dbname, mydefaults, resource_id):
 
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults)
         self.buffered = 0
+        self.resource_id = resource_id
         self._hostlistcache = {}
 
     def __str__(self):
@@ -25,12 +26,12 @@ class DataSqlStore:
         cur = self.con.cursor()
         try:
             if hostname not in self._hostlistcache:
-                cur.execute("INSERT IGNORE INTO supermichost (resource_id, hostname) VALUES (%s,%s)", [2812, hostname])
+                cur.execute("INSERT IGNORE INTO supermichost (resource_id, hostname) VALUES (%s,%s)", [self.resource_id, hostname])
                 self.con.commit()
                 self._hostlistcache[hostname] = 1
 
             cur.execute("INSERT INTO supermicjobhosts (resource_id, jobid, hostid, timestamp, type) VALUES(%s, %s, (SELECT id FROM supermichost WHERE resource_id = %s AND hostname = %s), %s, %s )",
-                        [2812, jobid, 2812, hostname, timestamp, startend])
+                        [self.resource_id, jobid, self.resource_id, hostname, timestamp, startend])
 
         except mdb.IntegrityError as e:
             if e[0] != 1062:
@@ -60,10 +61,11 @@ class DataSqlStore:
                 supermichost h
             WHERE
                 h.id = jh.hostid
+                AND jh.resource_id = %s
             GROUP BY hostid;
             """
         cur = self.con.cursor()
-        cur.execute(query)
+        cur.execute(query, (self.resource_id, ))
         res = {}
         for r in cur:
             res[r[0]] = r[1]
@@ -75,6 +77,84 @@ class DataSqlStore:
 
     def recordend(self, jobid, hostname, timestamp):
         self.record(jobid, hostname, timestamp, "end")
+
+class JobAccountFaker(object):
+    def __init__(self, dbname, mydefaults):
+        self.con = mdb.connect(db=dbname, read_default_file=mydefaults, cursorclass=MySQLdb.cursors.DictCursor)
+
+    def getjob(self):
+
+        # This query _should_ return the list of accounts that have tacc_stats data and are not in the
+        # AccountFact table
+
+        # The 18,000 time offset is the fiddle factor for the discrpency between jobfact times
+        # and tacc stats times (which probably varies with time of year :-(
+        fiddlefactor = "18000"
+
+        # The second fixup is that the jobids for PBS systems are strings. On SuperMIC the 
+        # jobid is a number followed by ".smic3", but the string part is stripped off befroe 
+        # it makes it into the modw.jobfact table.
+
+        query = """
+SELECT 
+    jf.resource_id AS resource_id,
+    jf.local_jobid AS local_jobid,
+    CONCAT(jf.local_jobid,'.smic3') as id,
+    jf.queue_id AS `partition`,
+    a.charge_number AS account,
+    s.username AS user,
+    (jf.submit_time_ts + {}) AS submit,
+    (jf.start_time_ts + {}) AS start_time,
+    (jf.end_time_ts + {}) AS end_time,
+    COUNT(jh.hostid) AS hostcount,
+    jf.nodecount AS nodes,
+    jf.processors AS ncpus,
+    GROUP_CONCAT(hh.hostname) AS node_list,
+    jf.`name` AS jobname
+FROM
+    ts_analysis.supermicjobhosts jh,
+    modw.jobfact jf,
+    modw.account a,
+    modw.systemaccount s,
+    ts_analysis.supermichost hh,
+    (SELECT DISTINCT
+        jh.resource_id, jh.jobid AS local_jobid
+    FROM
+        ts_analysis.supermicjobhosts jh
+    INNER JOIN modw.jobfact jf ON jf.local_jobid = jh.jobid
+        AND jf.resource_id = jh.resource_id
+    LEFT JOIN ts_analysis.accountfact af ON af.resource_id = jh.resource_id
+        AND af.local_job_id = jh.jobid
+    WHERE
+        af.local_job_id IS NULL) pending
+WHERE
+    jh.`type` = 'end'
+        AND jf.local_jobid = jh.jobid
+        AND jh.hostid = hh.id
+        AND jf.resource_id = jh.resource_id
+        AND jf.start_time_ts + {} < jh.`timestamp`
+        AND a.id = jf.account_id
+        AND s.id = jf.systemaccount_id
+        AND pending.local_jobid = jh.jobid
+        AND pending.resource_id = jh.resource_id
+GROUP BY 1 , 2
+        """.format(fiddlefactor, fiddlefactor, fiddlefactor, fiddlefactor)
+
+        cur = self.con.cursor()
+        cur.execute(query)
+        for r in cur:
+
+            record = []
+            record.append( r['resource_id'] )
+            record.append("") # placeholder for cluster
+            record.append( r['local_jobid'] )
+            record.append( r['start_time'] )
+            record.append( r['end_time'] )
+            r['host_list'] = r['node_list'].split(',')
+            record.append( json.dumps(r) )
+
+            yield record
+    
 
 class DataProxy:
     def __init__(self):
@@ -104,9 +184,8 @@ class DataProxy:
             self.data[jobid][hostname][startend] = timestamp
 
 class ArchiveIndexer:
-    def __init__(self):
-        #self.jobs = DataProxy()
-        self.jobs = DataSqlStore("ts_analysis", "~/.my.cnf")
+    def __init__(self, accountconfig, resconf):
+        self.jobs = DataSqlStore( accountconfig['dbname'], accountconfig['defaultsfile'], resconf['resource_id'])
         
     def __str__(self):
         return str(self.jobs)
@@ -136,7 +215,7 @@ class ArchiveIndexer:
                         continue
                     self.parsearchive(os.path.join(root, fname))
 
-                #a.parsearchive(os.path.join(root, fname))
+        self.jobs.postinsert()
 
     def parsearchive(self, filename):
     
@@ -165,12 +244,43 @@ class ArchiveIndexer:
         except TypeError as e:
             print e
             pass
+        
+def getconfig(configfilename = "config.json"):
+    
+    with open(configfilename, "rb") as fp:
+        config = json.load(fp)
+
+    return config
 
 def main():
+
+    config = getconfig()
+
+    #mode = "indexarchive"
+    #mode = "createaccount"
+    mode = "both"
+
+    for resourcename,resource in config['resources'].iteritems():
+
+        if 'enabled' in resource and resource['enabled'] == False:
+            continue
+
+        if resource['batch_system'] != "XDcDB":
+            continue
     
-    a = ArchiveIndexer()
-    a.process("/data/scratch/SuperMIC/archive")
-    print a
+        if mode == "indexarchive" or mode == "both":
+            a = ArchiveIndexer(config['accountdatabase'], resource)
+            a.process(resource['tacc_stats_home'])
+            print resourcename, str(a)
+
+        if mode == "createaccount" or mode == "both":
+            dbconf = config['accountdatabase']
+            f = JobAccountFaker(dbconf['dbname'], dbconf['defaultsfile'])
+            dbif = DbInterface(dbconf["dbname"], dbconf["tablename"], dbconf["defaultsfile"] )
+            for job in f.getjob():
+                dbif.insert(job)
+            dbif.postinsert()
+
 
 if __name__ == '__main__':
     main()

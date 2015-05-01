@@ -799,7 +799,7 @@ def summarize(j, lariatcache):
                 summaryDict['Error'].append("schema data not found")
 
     summaryDict['summary_version'] = SUMMARY_VERSION
-    uniq = str(j.acct['id'])
+    uniq = str( j.acct['local_jobid'] if 'local_jobid' in j.acct else j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']
     uniq += "-" + str(j.acct['end_time'])

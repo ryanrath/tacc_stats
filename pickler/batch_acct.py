@@ -8,6 +8,8 @@ def factory(kind,acct_file,host_name_ext=''):
     return SLURMAcct(acct_file,host_name_ext)
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
+  elif kind == 'XDcDB':
+    return XDcDBAcct(acct_file,host_name_ext)
 
 def special_char_stripper(fp):
    for line in fp:
@@ -272,6 +274,41 @@ class SLURMNativeAcct(BatchAcct):
 
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
       for a in super(SLURMNativeAcct,self).reader(start_time, end_time, seek):
+          a['host_list'] = self.get_host_list(a['node_list'])
+          a['hostname'] = a['host_list'][0]
+          yield a
+
+class XDcDBAcct(BatchAcct):
+  """ Process accounting data produced by grabbing it from the modw.jobfact 
+      table (which in turn comes from the XDcDB).
+  """
+
+  def __init__(self,acct_file,host_name_ext):
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('partition',                   str, 'Job partition'),
+      ('account',                     str, 'Job account'),
+      ('user',                        str, 'User that is running the job'),
+      ('submit',                      int, 'Time the job was submitted'),
+      ('start_time',                  int, 'Time job started to run (unix time stamp)'),
+      ('end_time',                    int, 'Time job ended (unix time stamp)'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('ncpus',                       int, 'Number of cpus'),
+      ('node_list',                   str, 'Nodes used in job'),
+      ('jobname',                     str, 'Job name')
+      )
+
+    BatchAcct.__init__(self,'XDcDB',acct_file,host_name_ext,"|")
+
+  def get_host_list_path(self,acct,host_list_dir):
+    return None
+
+  def get_host_list(self, nodelist):
+    return nodelist.split(",")
+
+  def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
+      for a in super(XDcDBAcct,self).reader(start_time, end_time, seek):
           a['host_list'] = self.get_host_list(a['node_list'])
           a['hostname'] = a['host_list'][0]
           yield a

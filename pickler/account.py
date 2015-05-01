@@ -73,7 +73,8 @@ class DbLogger(object):
 
         query = "UPDATE " + self.tablename + " SET process_version = %s WHERE resource_id = %s AND local_job_id = %s AND cluster = %s AND end_time_ts = %s"
         cluster = acct['cluster'] if 'cluster' in acct else ""
-        data = ( version, resource_id, acct['id'], cluster, acct['end_time'] )
+        local_jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
+        data = ( version, resource_id, local_jobid, cluster, acct['end_time'] )
 
         cur = self.con.cursor()
         cur.execute(query, data)
@@ -130,6 +131,11 @@ def ingest(config, end_time, start_time = None):
     for resourcename,resource in config['resources'].iteritems():
 
         if 'enabled' in resource and resource['enabled'] == False:
+            continue
+
+        if resource['batch_system'] == "XDcDB":
+            # The resources that use the accounting data directly from the 
+            # datawarehouse are not handled by this script
             continue
 
         if start_time == None:

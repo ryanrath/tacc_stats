@@ -5,6 +5,7 @@ import amd64_pmc, intel_snb, batch_acct
 import re
 import procdump
 import string
+import math
 
 import logging
 
@@ -378,10 +379,10 @@ class Host(object):
         if self.state == PENDING_FIRST_RECORD:
             if self.job.id in jobs:
                 self.setstate(ACTIVE, "job in timestamp list")
-            elif self.timestamp >= self.job.start_time:
+            elif math.floor(self.timestamp) >= self.job.start_time:
                 self.setstate(ACTIVE, "timestamp in job window")
         elif self.state == ACTIVE:
-            if (self.timestamp - 600) > self.job.end_time:
+            if math.floor(self.timestamp - 600) > self.job.end_time:
                 self.setstate(DONE, "timestamp out of job window")
         elif self.state == ACTIVE_IGNORE:
             self.setstate(ACTIVE)
