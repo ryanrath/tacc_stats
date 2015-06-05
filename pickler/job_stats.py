@@ -610,7 +610,7 @@ class Job(object):
                 k += 1
             jitter = abs(raw[k][0] - t)
             if jitter > 60:
-                self.errors.add("Warning - high jitter for host {} job {} Actual time {}, Thunked to {} (Delta {}) dev {}.{}".format(host.name, self.id, raw[k][0], t, jitter, dev_name, type_name))
+                self.errors.add("Warning - high jitter for host {} job {} Actual time {}, Thunked to {} (Delta {})".format(host.name, self.id, raw[k][0], t, jitter))
             A[i] = raw[k][1]
             host.times.append(raw[k][0])
 
