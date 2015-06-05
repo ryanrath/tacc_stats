@@ -12,7 +12,7 @@ import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
 
-SUMMARY_VERSION = "0.9.28"
+SUMMARY_VERSION = "0.9.30"
 
 VERBOSE = False
 
@@ -406,6 +406,8 @@ def gettimeseries(j, indices):
         try:
             if "intel_snb_imc" in host.stats:
                 membw = getinterfacestats(host.stats, "intel_snb_imc", "CAS_READS", indices) + getinterfacestats(host.stats, "intel_snb_imc", "CAS_WRITES", indices)
+            elif "intel_hsw_imc" in host.stats:
+                membw = getinterfacestats(host.stats, "intel_hsw_imc", "CAS_READS", indices) + getinterfacestats(host.stats, "intel_hsw_imc", "CAS_WRITES", indices)
             elif "intel_uncore" in host.stats:
                 membw = getinterfacestats(host.stats, "intel_uncore", "L3_MISS_READ", indices) + getinterfacestats(host.stats, "intel_uncore", "L3_MISS_WRITE", indices)
             else:
@@ -492,7 +494,7 @@ def summarize(j, lariatcache):
     metrics = None
     statsOk = True
 
-    perinterface = [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci" ]
+    perinterface = [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci" ]
     conglomerates = [ "irq" ]
 
     # The ib and ib_ext counters are known to be incorrect on all tacc_stats systems
@@ -568,6 +570,7 @@ def summarize(j, lariatcache):
     #  metricname - the name of the metric (such as cpu, mem etc).
     #  interface  - the interface exposed for the metric (such as user, system)
     #  device     - the name of the device (ie cpu0, numanode0, eth0 )
+    tacc_version = []
 
     for host in j.hosts.itervalues():  # for all the hosts present in the file
         nHosts += 1
@@ -577,6 +580,9 @@ def summarize(j, lariatcache):
         totaltimes.append(hostwalltime - walltime)
         starttimes.append(host.times[0] - j.start_time)
         endtimes.append(host.times[-1] - j.end_time)
+
+        if not host.tacc_version in tacc_version:
+            tacc_version.append(host.tacc_version)
 
         if abs(hostwalltime - walltime) > TIMETHRESHOLD:
             summaryDict['Error'].append("Large discrepency between job account walltime and tacc_stats walltime for {}. {} != {}.".format(host.name, walltime, hostwalltime) )
@@ -652,16 +658,17 @@ def summarize(j, lariatcache):
                         totals["cpu"]["all"] = []
                     totals["cpu"]["all"].append( sum( 1.0 * host.stats[metricname][device][-1,:] / hostwalltime) )
 
-                elif metricname == "intel_snb":
+                elif metricname == "intel_snb" or metricname == "intel_hsw":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
-                    compute_ratio(host.stats[metricname][device], indices[metricname], 'LOAD_L1D_ALL', 'CLOCKS_UNHALTED_REF', corederived["cpldref"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
                 elif metricname == "intel_pmc3":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
-                elif metricname == "intel_snb_imc":
+                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc":
                     compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
 
                 elif metricname == "mem":
@@ -778,6 +785,8 @@ def summarize(j, lariatcache):
     summaryDict['hosts'] = []
     for i in j.hosts.keys():
         summaryDict['hosts'].append(i)
+
+    summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
     # add account info from slurm accounting files
     summaryDict['acct'] = j.acct

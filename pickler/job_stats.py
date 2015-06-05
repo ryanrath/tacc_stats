@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import datetime, errno, glob, numpy, os, sys, time, gzip
 from subprocess import Popen, PIPE
-import amd64_pmc, intel_snb, batch_acct
+import amd64_pmc, intel_process, batch_acct
 import re
 import procdump
 import string
@@ -260,6 +260,7 @@ class Host(object):
         self.timestamp = None
         self.filename = None
         self.fileline = None
+        self.tacc_version = "Unknown"
 
     def trace(self, fmt, *args):
         logging.debug( fmt % args )
@@ -310,6 +311,8 @@ class Host(object):
                         self.error("file `%s', type `%s', schema mismatch desc `%s'\n",
                                    fp.name, type_name, schema_desc)
                 elif c == SF_PROPERTY_CHAR:
+                    if line.startswith("$tacc_stats"):
+                        self.tacc_version = line.split(" ")[1].strip()
                     pass
                 elif c == SF_COMMENT_CHAR:
                     pass
@@ -578,7 +581,7 @@ class Job(object):
                    len(times_lis[0]), len(times), len(times_lis[-1]))
         self.trace("job start to first collect %d\n", times[0] - self.start_time)
         self.trace("last collect to job end %d\n", self.end_time - times[-1])
-        self.times = numpy.array(times, dtype=numpy.uint64)
+        self.times = numpy.array(times, dtype=numpy.float64)
         if len(times_lis[0]) != len(times_lis[-1]):
             self.errors.add( "Number of records differs between hosts (min {}, max {})".format(len(times_lis[0]), len(times_lis[-1]) ) )
         return True
@@ -607,7 +610,7 @@ class Job(object):
                 k += 1
             jitter = abs(raw[k][0] - t)
             if jitter > 60:
-                self.errors.add("Warning - high jitter for host {} job {} Actual time {}, Thunked to {} (Delta {})".format(host.name, self.id, raw[k][0], t, jitter))
+                self.errors.add("Warning - high jitter for host {} job {} Actual time {}, Thunked to {} (Delta {}) dev {}.{}".format(host.name, self.id, raw[k][0], t, jitter, dev_name, type_name))
             A[i] = raw[k][1]
             host.times.append(raw[k][0])
 
@@ -690,7 +693,7 @@ class Job(object):
                                                              dev_name, raw_dev_stats)
             del host.raw_stats
         amd64_pmc.process_job(self)
-        intel_snb.process_job(self)
+        intel_process.process_job(self)
         # Clear mult, width from schemas. XXX
         for schema in self.schemas.itervalues():
             for e in schema.itervalues():

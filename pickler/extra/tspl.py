@@ -56,6 +56,8 @@ class TSPLBase:
         self.pmc_type='intel'
       elif 'intel_snb' in self.j.hosts.values()[0].stats:
         self.pmc_type='intel_snb'
+      elif 'intel_hsw' in self.j.hosts.values()[0].stats:
+        self.pmc_type='intel_hsw'
       
       if self.pmc_type in k1:
         self.k1=k1[self.pmc_type]
