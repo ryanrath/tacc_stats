@@ -148,10 +148,10 @@ class reformat_counters:
         # Just need the first hosts schema
         stats = None
         for host in job.hosts.itervalues():
-            if name not in host.stats: return
-            stats = host.stats[name]
-            break
-        
+            if name in host.stats:
+                stats = host.stats[name]
+                break
+
         if stats == None:
             return
 

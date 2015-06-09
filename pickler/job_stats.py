@@ -398,7 +398,12 @@ class Host(object):
     def processdata(self,line):
         if self.state == ACTIVE or self.state == LAST_RECORD:
 
-            type_name, dev_name, rest = line.split(None, 2)
+            try:
+                type_name, dev_name, rest = line.split(None, 2)
+            except ValueError as e:
+                self.error("syntax error on file '%s' line %s", self.filename, self.fileline)
+                return
+
             schema = self.file_schemas.get(type_name)
             if not schema:
                 self.error("file `%s', unknown type `%s', discarding line `%s'\n",
@@ -532,6 +537,8 @@ class Job(object):
     def gather_stats(self):
         if "host_list" in self.acct:
             host_list = self.acct['host_list']
+            if host_list == ["None assigned"]:
+                host_list = []
         else:
             path = self.batch_acct.get_host_list_path(self.acct, self.host_list_dir)
             if not path:
@@ -539,7 +546,7 @@ class Job(object):
                 return False
             try:
                 with open(path) as file:
-                    host_list = [host for line in file for host in line.split()]
+                    host_list = [host for line in file for host in line.split() if line != "None assigned"]
             except IOError as (err, str):
                 self.error("cannot open host list `%s': %s\n", path, str)
                 return False
