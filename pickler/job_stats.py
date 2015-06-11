@@ -376,8 +376,12 @@ class Host(object):
 
     def processtimestamp(self,line):
         recs = line.strip().split(" ")
-        self.timestamp = float(recs[0])
-        jobs = recs[1].strip().split(",")
+        try:
+            self.timestamp = float(recs[0])
+            jobs = recs[1].strip().split(",")
+        except IndexError as e:
+            self.error("syntax error timestamp in file '%s' line %s", self.filename, self.fileline)
+            return
 
         if self.state == PENDING_FIRST_RECORD:
             if self.job.id in jobs:
@@ -431,6 +435,9 @@ class Host(object):
     def processmark(self,line):
         mark = line[1:].strip()
         actions = mark.split()
+        if not actions:
+            self.error("syntax error processmark file `%s' line `%s'", self.filename, self.fileline)
+            return
         if actions[0] == "end":
             if actions[1] == self.job.id:
                 if self.state == ACTIVE:
