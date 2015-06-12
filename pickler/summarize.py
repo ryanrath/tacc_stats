@@ -12,7 +12,7 @@ import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
 
-SUMMARY_VERSION = "0.9.30"
+SUMMARY_VERSION = "0.9.31"
 
 VERBOSE = False
 
@@ -27,6 +27,8 @@ COMPACT_OUTPUT = True
 
 #ignore warnings from numpy
 numpy.seterr(all='ignore')
+
+TOO_FEW_DATAPOINTS = 1
 
 def removeDotKey(obj):
 
@@ -70,6 +72,116 @@ def addtoseries(interface, series, enties, data):
     else:
         series[interface] += data
         enties[interface] += 1
+
+def gentimedata(j, indices, ignorelist, isevent):
+
+    # Do the special derived metrics:
+    derived = { 
+            "intel_snb": { 
+                "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+                "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+            },
+            "intel_hsw": { 
+                "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+                "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+            },
+            "intel_pmc3": {
+                "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+                "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
+            }
+    }
+
+    computed = {
+        "intel_snb_imc": {
+            "membw": [ "64.0 * (a[0] + a[1])", "CAS_READS", "CAS_WRITES" ]
+        },
+        "mem": {
+            "mem_used_minus_cache": [ "a[0] - a[1] - a[2]", "MemUsed", "FilePages", "Slab" ]
+        }
+    }
+    if "intel_snb_imc" in isevent:
+        isevent["intel_snb_imc"]["membw"] = True
+    if "mem" in isevent:
+        isevent["mem"]["mem_used_minus_cache"] = False
+
+    ndatapoints = len(j.times)
+    if ndatapoints < 3:
+        return { "error": TOO_FEW_DATAPOINTS }
+
+    times = numpy.linspace(j.start_time, j.end_time, ndatapoints)
+
+    # Data for each host is normalized to ndatapoints data points using
+    # piecewise linear interpolation. The host data is then combined to 
+    # produce job-timeseries data.
+
+    hostdata = {}
+
+    for host in j.hosts.itervalues():  # for all the hosts present in the file
+        for metric in host.stats.iterkeys():
+            if metric in ignorelist:
+                continue
+
+            for interface in indices[metric].keys() + ["all"]:
+                if metric not in hostdata:
+                    hostdata[metric] = {}
+                if interface not in hostdata[metric]:
+                    hostdata[metric][interface] = numpy.interp(times, host.times, getinterfacestats(host.stats, metric, interface, indices))
+                else:
+                    hostdata[metric][interface] += numpy.interp(times, host.times, getinterfacestats(host.stats, metric, interface, indices))
+
+            if metric in computed:
+                for outname, formula in computed[metric].iteritems():
+                    a = []
+                    for interface in formula[1:]:
+                        if interface in indices[metric]:
+                            a.append(getinterfacestats(host.stats, metric, interface, indices))
+                        else:
+                            break
+
+                    if len(a) != (len(formula)-1):
+                        break;
+
+                    if outname not in hostdata[metric]:
+                        hostdata[metric][outname] = numpy.interp(times, host.times, eval(formula[0]))
+                    else:
+                        hostdata[metric][outname] += numpy.interp(times, host.times, eval(formula[0]))
+
+    results = {}
+    for m,v in hostdata.iteritems():
+        results[m] = {}
+        for i,a in v.iteritems():
+            if i == "all":
+                continue
+            if m == "cpu":
+                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(hostdata[m]["all"]) )
+            elif isevent[m][i]:
+                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(times) )
+            else:
+                results[m][i] = calculate_stats( a )
+
+        if m in derived:
+            if 'analysis' not in results:
+                results['analysis'] = {}
+
+            for outname, formula in derived[m].iteritems():
+                func = formula[0]
+                a = []
+                for interface in formula[1:]:
+                    if interface in v:
+                        a.append(v[interface])
+                    else:
+                        break
+
+                if len(a) != (len(formula)-1):
+                    break;
+
+                results['analysis'][outname] = calculate_stats( eval(func) )
+
+    return results
 
 def converttooutput(series, summaryDict, j):
     for l in series.keys():
@@ -338,7 +450,7 @@ def getinterfacestats(hoststats, metricname, interface, indices):
             if interface == "all":
                 totals += numpy.sum(devstats, axis = 1)
             else:
-                totals += devstats[:,ifidx]
+                totals += numpy.array(devstats[:,ifidx])
 
     return totals
 
@@ -635,7 +747,7 @@ def summarize(j, lariatcache):
 
                         # Special case - memory is raw per node, but averaged per core
                         if metricname == "mem":
-                            data /= nCoresPerSocket
+                            data = numpy.array(data / nCoresPerSocket)
 
                         if metricname in perinterface:
                             addtoseries(interface, series[metricname], enties[metricname], data)
@@ -697,6 +809,13 @@ def summarize(j, lariatcache):
         statsOk = False
         summaryDict['Error'].append( "No CPU information" )
 
+    timeseries = None
+    if statsOk:
+        timeseries = gettimeseries(j,indices)
+        # Temp disable bulk timedata generation until it has been validated
+        #timedata = gentimedata(j, indices, ignorelist, isevent)
+
+
     # Change series values into per entity values e.g. Memory per node or IO per node
     for metricname, ifstats in series.iteritems():
         for interface, devstats in ifstats.iteritems():
@@ -706,9 +825,7 @@ def summarize(j, lariatcache):
             else:
                 devstats /= enties[metricname][interface]
 
-    timeseries = None
     if statsOk:
-        timeseries = gettimeseries(j,indices)
 
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
@@ -828,6 +945,9 @@ def summarize(j, lariatcache):
 
     if timeseries != None:
         timeseries['_id'] = uniq
+
+    if timedata != None:
+        summaryDict['timedata'] = timedata 
 
     return (summaryDict, timeseries)
 
