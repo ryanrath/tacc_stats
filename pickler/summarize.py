@@ -475,7 +475,7 @@ def nativefloatlist(numpyarray):
 
 def gettimeseries(j, indices):
 
-    if len(j.hosts) > 64:
+    if len(j.hosts) > 128:
         return { "hosts": [], "error": { "all": "too many hosts" }, "times": {}, "version": 3, "nodebased": {}, "devicebased": {} }
 
     MEGA = 1024.0 * 1024.0
@@ -796,9 +796,9 @@ def summarize(j, lariatcache):
                         else:
                             end = ndatapoints
 
-                        memstat = host.stats[metricname][device][1:ndatapoints,muindex] - \
+                        memstat = (host.stats[metricname][device][1:ndatapoints,muindex] - \
                                 host.stats[metricname][device][1:ndatapoints,fpindex] - \
-                                host.stats[metricname][device][1:ndatapoints,slindex]
+                                host.stats[metricname][device][1:ndatapoints,slindex] ) / nCoresPerSocket
 
                         addtoseries("used_minus_diskcache", series[metricname], enties[metricname], memstat)
 
@@ -810,6 +810,7 @@ def summarize(j, lariatcache):
         summaryDict['Error'].append( "No CPU information" )
 
     timeseries = None
+    timedata = None
     if statsOk:
         timeseries = gettimeseries(j,indices)
         # Temp disable bulk timedata generation until it has been validated
