@@ -12,6 +12,8 @@ import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
 
+from timeseriessummary import TimeSeriesSummary
+
 SUMMARY_VERSION = "0.9.31"
 
 VERBOSE = False
@@ -454,131 +456,6 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
     return totals
 
-def getallstats(hoststats, metricname, interface, indices):
-
-    ifidx = None
-    if interface != "all":
-        ifidx = indices[metricname][interface]
-
-    result = {}
-    for devname, devstats in hoststats[metricname].iteritems():
-        if interface == "all":
-            result[devname] = numpy.sum(devstats, axis = 1)
-        else:
-            result[devname] = numpy.array(devstats[:,ifidx])
-
-    return result
-
-
-def nativefloatlist(numpyarray):
-    return [ float(x) for x in numpyarray ]
-
-def gettimeseries(j, indices):
-
-    if len(j.hosts) > 128:
-        return { "hosts": [], "error": { "all": "too many hosts" }, "times": {}, "version": 3, "nodebased": {}, "devicebased": {} }
-
-    MEGA = 1024.0 * 1024.0
-    GIGA = MEGA * 1024.0
-
-    data = { "hosts": [], "error": {}, "times": {}, "version": 3, "nodebased": {}, "devicebased": {} }
-    nodebased = { "cpuuser": {}, "membw": {}, "memused_minus_diskcache": {}, "simdins": {}, "lnet": {}, "ib_lnet": {} }
-    devicebased = { "cpuuser": {} }
-
-    i = 0
-    for host in j.hosts.itervalues():  # for all the hosts present in the file
-        # docs are only allowed string keys
-        hostidx = str(i)
-        i += 1
-
-        timedeltas = numpy.diff(host.times)
-        validtimes = [ True if x > MINTIMEDELTA else False for x in timedeltas ]
-
-        data['hosts'].append(host.name) 
-
-        if len(validtimes) < 2:
-            data['error'][hostidx] = { "error": 1 }
-            continue
-
-        data["times"][hostidx] = nativefloatlist( numpy.compress(validtimes, host.times[1:]) )
-
-        cpuuser =  getinterfacestats(host.stats, "cpu", "user", indices)
-        cpuall =  getinterfacestats(host.stats, "cpu", "all", indices)
-        cpuuserpercent = numpy.diff(cpuuser) * 100.0 / numpy.diff(cpuall)
-        nodebased["cpuuser"][hostidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
-
-        percpuuser = getallstats(host.stats, "cpu", "user", indices)
-        percpuall = getallstats(host.stats, "cpu", "all", indices)
-        for cpuidx, cpuu in percpuuser.iteritems():
-            cpuuserpercent = numpy.diff(cpuu) * 100.0 / numpy.diff(percpuall[cpuidx])
-            if hostidx not in devicebased["cpuuser"]:
-                devicebased["cpuuser"][hostidx] = {}
-            devicebased["cpuuser"][hostidx]["cpu" + cpuidx] = nativefloatlist( numpy.compress(validtimes, cpuuserpercent) )
-
-        try:
-            if "intel_snb_imc" in host.stats:
-                membw = getinterfacestats(host.stats, "intel_snb_imc", "CAS_READS", indices) + getinterfacestats(host.stats, "intel_snb_imc", "CAS_WRITES", indices)
-            elif "intel_hsw_imc" in host.stats:
-                membw = getinterfacestats(host.stats, "intel_hsw_imc", "CAS_READS", indices) + getinterfacestats(host.stats, "intel_hsw_imc", "CAS_WRITES", indices)
-            elif "intel_uncore" in host.stats:
-                membw = getinterfacestats(host.stats, "intel_uncore", "L3_MISS_READ", indices) + getinterfacestats(host.stats, "intel_uncore", "L3_MISS_WRITE", indices)
-            else:
-                raise KeyError()
-
-            membw = numpy.diff( membw ) * 64.0 / GIGA
-            nodebased["membw"][hostidx] = nativefloatlist( numpy.compress(validtimes, membw / timedeltas ) )
-        except KeyError:
-            nodebased['membw'][hostidx] = { "error": 2 }
-
-        try:
-            if "intel_snb" in host.stats:
-                if 'SSE_DOUBLE_ALL' in indices['intel_snb']:
-                    simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_DOUBLE_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_ALL', indices)
-                else:
-                    simdins = getinterfacestats(host.stats, "intel_snb", "SIMD_DOUBLE_256", indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_PACKED', indices) + getinterfacestats(host.stats,"intel_snb", 'SSE_DOUBLE_SCALAR', indices)
-            elif "intel_pmc3" in host.stats:
-                simdins = getinterfacestats(host.stats, "intel_pmc3", "FP_COMP_OPS_EXE_SSE", indices);
-            else:
-                raise KeyError()
-
-            simdins = numpy.diff(simdins) / GIGA
-            nodebased["simdins"][hostidx] = nativefloatlist( numpy.compress(validtimes, simdins / timedeltas ) )
-        except KeyError:
-            nodebased["simdins"][hostidx] = { "error": 2 }
-
-
-        try:
-            memusage = getinterfacestats(host.stats, "mem", "MemUsed", indices)
-            filepages = getinterfacestats(host.stats, "mem",'FilePages' , indices)
-            slab  = getinterfacestats(host.stats, "mem", "Slab", indices)
-            mem_minus = (memusage - filepages - slab ) / GIGA
-            nodebased["memused_minus_diskcache"][hostidx] = nativefloatlist( numpy.compress(validtimes, mem_minus[1:] ) )
-        except KeyError:
-            nodebased["memused_minus_diskcache"][hostidx] = { "error": 2 }
-
-        lnet_abs = None
-        try:
-            lnet_abs = getinterfacestats(host.stats, "lnet", "tx_bytes", indices) + getinterfacestats(host.stats, "lnet", "rx_bytes", indices)
-            lnet = numpy.diff(lnet_abs) / MEGA
-            nodebased["lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, lnet / timedeltas) )
-        except KeyError:
-            nodebased["lnet"][hostidx] = { "error": 2 }
-
-        try:
-            ib_lnet = getinterfacestats(host.stats, "ib_sw", "rx_bytes", indices) + getinterfacestats(host.stats, "ib_sw", "tx_bytes", indices)
-            if lnet_abs != None:
-                ib_lnet -= lnet_abs
-            ib_lnet = numpy.diff(ib_lnet) / MEGA
-            nodebased["ib_lnet"][hostidx] = nativefloatlist( numpy.compress(validtimes, ib_lnet / timedeltas) )
-        except KeyError:
-            nodebased["ib_lnet"][hostidx] = { "error": 2 }
-
-
-    data["nodebased"] =  nodebased
-    data["devicebased"] = devicebased
-        
-    return data
-
 def summarize(j, lariatcache):
 
     summaryDict = {}
@@ -812,7 +689,8 @@ def summarize(j, lariatcache):
     timeseries = None
     timedata = None
     if statsOk:
-        timeseries = gettimeseries(j,indices)
+        ttt = TimeSeriesSummary()
+        timeseries = ttt.process(j,indices)
         # Temp disable bulk timedata generation until it has been validated
         #timedata = gentimedata(j, indices, ignorelist, isevent)
 

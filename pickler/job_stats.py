@@ -17,6 +17,11 @@ else:
     io_method = cStringIO.StringIO
     #import io
     #io.BufferedIOBase
+if sys.version.startswith("2.6"):
+    from backport_collections import OrderedDict
+else:
+    from collections import OrderedDict
+
 verbose = os.getenv('TACC_STATS_VERBOSE')
 
 if not verbose:
@@ -514,7 +519,7 @@ class Job(object):
         self.end_time = acct['end_time']
         self.acct = acct
         self.schemas = {}
-        self.hosts = {}
+        self.hosts = OrderedDict()
         self.times = []
         self.stats_home=stats_home
         self.host_list_dir=host_list_dir
