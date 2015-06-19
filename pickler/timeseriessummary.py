@@ -140,7 +140,7 @@ class TimeSeriesSummary(object):
 
         self.times = computesubsamples(j.times, numpy.diff(j.times))
 
-        if len(j.hosts) > 16:
+        if len(j.hosts) > 64:
             return self.getminmaxmed(j, indices)
         else:
             return self.gettimeseries(j, indices)
