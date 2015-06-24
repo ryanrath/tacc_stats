@@ -255,7 +255,7 @@ class TimeSeriesSummary(object):
         uniqhosts = Counter( [ 0 ] )
         uniqhosts.update(sortarr[0, :])
         uniqhosts.update(sortarr[-1, :])
-        uniqhosts.update(sortarr[sortarr.shape[1] / 2, :])
+        uniqhosts.update(sortarr[sortarr.shape[0] / 2, :])
 
         for hostidx, host in enumerate(j.hosts.itervalues()):
             if hostidx not in uniqhosts.keys():
