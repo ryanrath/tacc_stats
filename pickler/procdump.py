@@ -4,11 +4,13 @@ import sys
 import base64
 import StringIO
 import re
+import operator
 
 class ProcFilter:
     def __init__(self):
         self.knownprocesses = set(['wnck-applet',
             'ibrun', 'mpispawn', 'mpirun_rsh',
+            'munged', 'nscd', 'orterun', 'perl',
             'wc', 'which', 'vncserver', 'vncconfig', 'vim', 'vi', 'usleep', 'uname',
             'uniq', 'tr', 'top', 'time', 'tee', 'tail', 'sync-to-pcp1',
             'sync-pcp-logs', 'sshd:', 'sshd', 'sort', 'ssh', 'srun', 'sh', 'squeue',
@@ -47,19 +49,24 @@ class TaccProcDump:
         self.procfilter = ProcFilter()
 
     def getproclist(self, job, uid=None):
-        outprocs = []
+        outprocs = dict()
 
         for host in job.hosts.itervalues():
             if "proc" in host.stats.keys():
                 for command, data in host.stats['proc'].iteritems():
                     if self.procfilter.allow(command):
-                        if uid == None or uid == data[0]:
-                            outprocs.append(command)
+                        procuid = data[0, job.get_schema('proc')['Uid'].index]
+                        mincpuallowed = min(data[:,job.get_schema('proc')['Cpus_allowed_list'].index])
+
+                        if uid == None or uid == procuid:
+                            outprocs[command] = mincpuallowed
 
             if len(outprocs) > 0:
-                return outprocs
+                break
 
-        return outprocs
+        # sort results by the cpus allowed value. This will
+        # prefer commands that were pinned to the fewest cpus (ie are most likely to be parallel codes)
+        return [x[0] for x in sorted(outprocs.items(), key=operator.itemgetter(1))]
 
 class ProcDump:
     """ This class parses the output of the procdump information from the (deprecated) CCR branch 
