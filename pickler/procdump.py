@@ -5,11 +5,10 @@ import base64
 import StringIO
 import re
 
-class ProcDump:
+class ProcFilter:
     def __init__(self):
-        self.uidprocs= dict()
-        
         self.knownprocesses = set(['wnck-applet',
+            'ibrun', 'mpispawn', 'mpirun_rsh',
             'wc', 'which', 'vncserver', 'vncconfig', 'vim', 'vi', 'usleep', 'uname',
             'uniq', 'tr', 'top', 'time', 'tee', 'tail', 'sync-to-pcp1',
             'sync-pcp-logs', 'sshd:', 'sshd', 'sort', 'ssh', 'srun', 'sh', 'squeue',
@@ -29,6 +28,46 @@ class ProcDump:
             'CROND', '/usr/lib64/nagios/plugins/check_procs', '/etc/vnc/Xvnc-core'])
         
         self.procfilter = re.compile('^/user/[a-z0-9]+/\.vnc/xstartup|^/var\/spool\/slurmd.+|.*pmi_proxy$')
+
+    def filter(self, command):
+        """ returns true if the command should be filtered (ie it is a known non-HPC application) """
+        if command in self.knownprocesses:
+            return True
+        if self.procfilter.search(command):
+            return True
+    
+        return False
+
+    def allow(self, command):
+        return not self.filter(command)
+
+class TaccProcDump:
+    """ Process the proc information from tacc_stats version >= 2.1 """
+    def __init__(self):
+        self.procfilter = ProcFilter()
+
+    def getproclist(self, job, uid=None):
+        outprocs = []
+
+        for host in job.hosts.itervalues():
+            if "proc" in host.stats.keys():
+                for command, data in host.stats['proc'].iteritems():
+                    if self.procfilter.allow(command):
+                        if uid == None or uid == data[0]:
+                            outprocs.append(command)
+
+            if len(outprocs) > 0:
+                return outprocs
+
+        return outprocs
+
+class ProcDump:
+    """ This class parses the output of the procdump information from the (deprecated) CCR branch 
+        of tacc_stats. This data is base64 encoded dump of various contents of files under /proc
+    """
+    def __init__(self):
+        self.uidprocs= dict()
+        self.procfilter = ProcFilter()
 
     def __str__(self):
         return str(self.getproclist())
@@ -74,12 +113,7 @@ class ProcDump:
         command = self.getcommand(commandline)
         if command == None:
             return True
-        if command in self.knownprocesses:
-            return True
-        if self.procfilter.search(command):
-            return True
-    
-        return False
+        return self.procfilter.filter(command)
 
     def parse(self,indata):
 

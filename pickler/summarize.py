@@ -11,6 +11,7 @@ import json
 import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
+from procdump import TaccProcDump
 
 from timeseriessummary import TimeSeriesSummary
 
@@ -195,103 +196,6 @@ def converttooutput(series, summaryDict, j):
             else:
                 v = calculate_stats(series[l][k])
                 addmetrics(summaryDict,j.overflows, l, k, v)
-
-
-# Generate the job schema definition based on the pickle schema and enriched with
-# information about the data sources - note this info needs to be maintained!
-
-def generate_schema_defn(job):
-
-    schema = {}
-
-    for k in job.schemas.keys():
-        schema[k] = {}
-
-        for e, t in job.schemas[k].iteritems():
-
-            if t.is_control:
-                continue
-
-            info = {}
-            if k == "block":
-                info["source"] = {"type": "sysfs", "name": "/sys/block/*/stat" }
-            if k == "cpu":
-                info["source"] = {"type": "procfs", "name": "/proc/stat" }
-            if k == "ps":
-                if e == "ctxt" or e == "processes":
-                    info["source"] = { "type": "procfs", "name": "/proc/stat" }
-                else:
-                    info["source"] = { "type": "procfs", "name": "/proc/loadavg" }
-            if k == "panfs":
-                if e == "kernel_slab_size":
-                    info["source"] = { "type": "procfs", "name": "/proc/slabinfo" }
-                else:
-                    info["source"] = { "type": "process", "name": "panfs_stat" }
-            if k == "irq":
-                info["source"] = {"type": "procfs", "name": "/proc/interrupts" }
-            if k == "mem":
-                info["source"] = {"type": "sysfs", "name": "/sys/devices/system/node/node*/meminfo" }
-            if k == "net":
-                info["source"] = {"type": "sysfs", "name": "/sys/class/net/*/statistics" }
-            if k == "nfs":
-                if e == "kernel_slab_size":
-                    info["source"] = { "type": "procfs", "name": "/proc/slabinfo" }
-                else:
-                    info["source"] = { "type": "procfs", "name": "/proc/self/mountstats" }
-            if k == "numa":
-                info["source"] = {"type": "sysfs", "name": "/sys/devices/system/node/node*/numastat" }
-            if k == "sched":
-                info["source"] = { "type": "procfs", "name": "/proc/schedstat" }
-            if k == "sysv_shm":
-                info["source"] = { "type": "procfs", "name": "/proc/sysvipc/shm" }
-            if k == "tmpfs":
-                info["source"] = { "type": "syscall", "name": "statfs" }
-            if k == "vfs":
-                if e == "dentry_use":
-                    info["source"] = { "type": "procfs", "name": "/proc/sys/fs/dentry-state" }
-                else:
-                    info["source"] = { "type": "procfs", "name": "/proc/sys/fs/inode-state" }
-            if k == "vm":
-                info["source"] = { "type": "procfs", "name": "/proc/vmstat" }
-
-            info['type'] = "counter" if t.is_event else "instant"
-            info['unit'] = "" if t.unit == None else t.unit
-
-            schema[k][e] = info
-
-    return schema
-
-def generatesummaryschema(jobschema):
-
-    schema = {}
-    schema['_id'] = "summary-" + SUMMARY_VERSION
-    schema['summary_version'] = SUMMARY_VERSION
-
-    schema['definitions'] = {}
-
-    # Merge job schema - some fields will be overwritten later
-    for k,v in jobschema.iteritems():
-        schema['definitions'][k] = {}
-        for e,t in v.iteritems():
-            out = dict(t)
-            if t['type'] == 'counter':
-                out['type'] = 'rate'
-                out['unit'] = t['unit'] + "/s"
-            schema['definitions'][k][e] = out
-
-
-    # Add summary-specific entities
-    schema['definitions']['FLOPS'] = { 'type': "rate", "unit": "ops/s", "description": "Generated from the available FLOPS hardware counters present on the cores" }
-    schema['definitions']['Error'] = { 'type': "metadata", "description": "List of the processing errors encountered during job summary creation" }
-    schema['definitions']['complete'] = { 'type': "metadata", "description": "Whether the raw data was available for all nodes that the job was assigned" }
-    schema['definitions']['nHosts'] = { 'type': "discrete", "unit": "1", "description": "Number of hosts with raw data" }
-    schema['definitions']['cpicore'] = { 'type': "ratio", "unit": "1", "description": "Number of clock ticks per instruction" }
-    schema['definitions']['cpiref'] = { 'type': "ratio", "unit": "1", "description": "Number of reference clock ticks per instruction" }
-    schema['definitions']['cpldref'] = { 'type': "ratio", "unit": "1", "description": "Number of clock ticks per instruction" }
-    schema['definitions']['membw'] = { 'type': "rate", "unit": "B/s", "description": "Amount of data transferred to main memory" }
-
-    print json.dumps(schema, indent=4)
-    sys.exit(0)
 
 class LariatManager:
     def __init__(self, lariatpath):
@@ -520,9 +424,6 @@ def summarize(j, lariatcache):
             metrics[t].append('all')
         for m in j.schemas[t]:
             metrics[t].append(m)
-
-    # TODO jobschema = generate_schema_defn(j)
-    # TODO generatesummaryschema(jobschema)
 
     indices = {}
     totals = {}
@@ -814,8 +715,16 @@ def summarize(j, lariatcache):
     if len(summaryDict['Error']) == 0:
         del summaryDict['Error']
 
-    if "hostname" in j.acct and 'uid' in j.acct and j.acct['hostname'] in j.hosts:
-        pl = j.hosts[j.acct['hostname']].procdump.getproclist(j.acct['uid'])
+    """ Process procDump information from the tacc_stats file itself """
+    if 'uid' in j.acct:
+        if "hostname" in j.acct and j.acct['hostname'] in j.hosts:
+            """ Deprecated procdump from the CCR branch of tacc_stats """
+            pl = j.hosts[j.acct['hostname']].procdump.getproclist(j.acct['uid'])
+        else:
+            """ procdump information from tacc_stats >= 2.1 """
+            taccproc = TaccProcDump()
+            pl = taccproc.getproclist(j, None)
+
         if len(pl) > 0:
             summaryDict['procDump'] = pl
 
