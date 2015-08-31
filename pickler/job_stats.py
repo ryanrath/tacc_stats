@@ -477,7 +477,8 @@ class Host(object):
                     self.setstate(ACTIVE_IGNORE, "begin for another job")
 
         if actions[0] == "procdump":
-            if self.state == ACTIVE and self.procdump != None:
+            # procdump information is valid even when in active ignore
+            if (self.state == ACTIVE or self.state == ACTIVE_IGNORE) and self.procdump != None:
                 self.procdump.parse(line)
         pass
 
