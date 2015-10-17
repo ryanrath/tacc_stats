@@ -312,7 +312,7 @@ class Host(object):
                     if schema:
                         file_schemas[type_name] = schema
                     else:
-                        self.error("file `%s', type `%s', schema mismatch desc `%s'\n",
+                        self.error("file `%s', type `%s', schema mismatch desc `%s'",
                                    fp.name, type_name, schema_desc)
                 elif c == SF_PROPERTY_CHAR:
                     if line.startswith("$tacc_stats"):
@@ -323,7 +323,7 @@ class Host(object):
                 else:
                     break
             except Exception as exc:
-                self.error("file `%s', caught `%s' discarding line `%s'\n",
+                self.error("file `%s', caught `%s' discarding line `%s'",
                            fp.name, exc, line)
                 break
         return file_schemas
@@ -339,14 +339,17 @@ class Host(object):
 
         self.file_schemas = self.read_stats_file_header(fp)
         if not self.file_schemas:
-            self.error("file `%s' bad header on line %s\n", self.filename, self.fileline)
+            self.error("file `%s' bad header on line %s", self.filename, self.fileline)
             return
 
-        for line in fp:
-            self.fileline += 1
-            self.parse(line.strip())
-            if self.state == DONE:
-                break
+        try:
+            for line in fp:
+                self.fileline += 1
+                self.parse(line.strip())
+                if self.state == DONE:
+                    break
+        except Exception as e:
+            self.error("file `%s' exception %s on line %s", self.filename, str(e), self.fileline)
 
 
     def parse(self, line):
@@ -415,13 +418,13 @@ class Host(object):
 
             schema = self.file_schemas.get(type_name)
             if not schema:
-                self.error("file `%s', unknown type `%s', discarding line `%s'\n",
+                self.error("file `%s', unknown type `%s', discarding line `%s'",
                         self.filename, type_name, self.fileline)
                 return
 
             vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
             if vals.shape[0] != len(schema):
-                self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'\n",
+                self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'",
                        self.filename, type_name, len(schema), vals.shape[0], self.fileline)
                 return
 
@@ -485,7 +488,7 @@ class Host(object):
     def gather_stats(self):
         path_list = self.get_stats_paths()
         if len(path_list) == 0:
-            self.error("no stats files overlapping job\n")
+            self.error("no stats files overlapping job")
             return False
 
         # read_stats_file() and parse_stats() append stats records
@@ -496,7 +499,7 @@ class Host(object):
                 with gzip.open(path) as file:
                     self.read_stats_file(file)
             except IOError as ioe:
-                self.error("read error for file %s\n", path)
+                self.error("read error for file %s", path)
 
         return self.raw_stats
 
@@ -534,7 +537,7 @@ class Job(object):
 
     def error(self, fmt, *args):
         self.errors.add( fmt % args )
-        error('%s: ' + fmt, self.id, *args)
+        error('%s: ' + fmt, str(self.id), *args)
 
     def get_schema(self, type_name, desc=None):
         schema = self.schemas.get(type_name)
@@ -555,16 +558,18 @@ class Job(object):
         else:
             path = self.batch_acct.get_host_list_path(self.acct, self.host_list_dir)
             if not path:
-                self.error("no host list found\n")
+                if self.end_time - self.start_time > 0:
+                    # Only care about missing hosts if the job actually ran!
+                    self.error("no host list found")
                 return False
             try:
                 with open(path) as file:
                     host_list = [host for line in file for host in line.split() if line != "None assigned"]
             except IOError as (err, str):
-                self.error("cannot open host list `%s': %s\n", path, str)
+                self.error("cannot open host list `%s': %s", path, str)
                 return False
         if len(host_list) == 0:
-            self.error("empty host list\n")
+            self.error("empty host list")
             return False
         for hidx, host_name in enumerate(host_list):
             # TODO Keep bad_hosts.
@@ -575,7 +580,7 @@ class Job(object):
             if host.gather_stats():
                 self.hosts[host_name] = host
         if not self.hosts:
-            self.error("no good hosts\n")
+            self.error("no good hosts")
             return False
         return True
 
