@@ -570,7 +570,7 @@ class Job(object):
             except IOError as (err, str):
                 self.error("cannot open host list `%s': %s", path, str)
                 return False
-        if len(host_list) == 0:
+        if len(host_list) == 0 and self.end_time - self.start_time > 0:
             self.error("empty host list")
             return False
         for hidx, host_name in enumerate(host_list):
@@ -631,15 +631,19 @@ class Job(object):
         # with the closest timestamps.
         # TODO sort out host times
         host.times = []
+        rmsjitter = 0.0
         for i in xrange(0, m):
             t = self.times[i]
             while k + 1 < len(raw) and abs(raw[k + 1][0] - t) <= abs(raw[k][0] - t):
                 k += 1
-            jitter = abs(raw[k][0] - t)
-            if jitter > 60:
-                self.errors.add("Warning - high jitter for host {} job {} Actual time {}, Thunked to {} (Delta {})".format(host.name, self.id, raw[k][0], t, jitter))
+            rmsjitter += (raw[k][0] - t)**2
             A[i] = raw[k][1]
             host.times.append(raw[k][0])
+
+        if m > 0:
+            rmsjitter = math.sqrt(rmsjitter) / m
+            if rmsjitter > 60:
+                self.errors.add("high rmsjitter {} for host {}".format(rmsjitter, host.name))
 
         # OK, we fit the raw values into A.  Now fixup rollover and
         # convert units.

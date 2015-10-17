@@ -4,12 +4,13 @@ import os, sys
 import re
 import math
 import job_stats
+import logging
 
 VERBOSE=False
 class TSPLException(Exception):
   def __init__(self,arg):
     self.value=arg
-    print self.value
+    logging.warning(self.value)
 
 class TSPLBase:
   def __init__(self,file,k1,k2,job_data = None):
