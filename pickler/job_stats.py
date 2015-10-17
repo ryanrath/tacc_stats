@@ -34,12 +34,14 @@ if prog == "":
 
 def trace(fmt, *args):
     if verbose:
-        logging.debug(prog + ": " + fmt, args)
+        msg = fmt % args
+        logging.debug(prog + ": " + msg)
 
 def error(fmt, *args):
     # Job-level errors are summarization process level wanrings since an error
     # with one job does not prevent others from being processed
-    logging.warning(prog + ": " + fmt, args)
+    msg = fmt % args
+    logging.warning(prog + ": " + msg)
 
 RAW_STATS_TIME_MAX = 86400 + 2 * 3600
 RAW_STATS_TIME_PAD = 1200
