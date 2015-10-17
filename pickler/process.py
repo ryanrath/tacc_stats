@@ -30,7 +30,7 @@ class RateCalculator:
                 self.rate = self.count * 1.0 / diff
 
                 if (self.count % 20) == 0:
-                    logging.info("Instance %s Processed %s records in %s seconds (%s per second)\n",
+                    logging.info("Instance %s Processed %s records in %s seconds (%s per second)",
                                  self.procid, self.count, diff, self.rate)
 
         self.count += 1
