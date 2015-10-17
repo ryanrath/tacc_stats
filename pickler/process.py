@@ -10,9 +10,9 @@ from pymongo import MongoClient
 from pymongo.errors import InvalidDocument
 from multiprocessing import Process
 import socket
+import logging
 
 PROCESS_VERSION = 4
-verbose = False
 
 class RateCalculator:
     def __init__(self, procid):
@@ -30,8 +30,8 @@ class RateCalculator:
                 self.rate = self.count * 1.0 / diff
 
                 if (self.count % 20) == 0:
-                    sys.stderr.write("{} Instance {} Processed {} records in {} seconds ({} per second)\n".format( 
-                        datetime.datetime.utcnow().isoformat(), self.procid, self.count, diff, self.rate ))
+                    logging.info("Instance %s Processed %s records in %s seconds (%s per second)\n",
+                                 self.procid, self.count, diff, self.rate)
 
         self.count += 1
 
@@ -40,7 +40,7 @@ class RateCalculator:
 
 def createsummary(totalprocs, procid):
 
-    sys.stderr.write("{} Processor {} of {} starting\n".format(datetime.datetime.utcnow().isoformat(), procid, totalprocs))
+    logging.info("Processor %s of %s starting", procid, totalprocs)
     referencetime = int(time.time()) - ( 3 * 24 * 3600 ) 
 
     config = account.getconfig()
@@ -73,8 +73,7 @@ def createsummary(totalprocs, procid):
         dbwriter = account.DbLogger( dbconf["dbname"], dbconf["tablename"], dbconf["defaultsfile"] )
 
         for acct in dbreader.reader():
-            if verbose:
-                sys.stderr.write( "{} local_job_id = {}\n".format(datetime.datetime.utcnow().isoformat(), acct['id']) )
+            logging.debug("%s local_job_id = %s", resourcename, acct['id'])
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'], bacct )
             summary,timeseries = summarize.summarize(job, lariat)
 
@@ -84,10 +83,14 @@ def createsummary(totalprocs, procid):
                 continue
 
             summaryOk = False
-            outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
+            try:
+                outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
 
-            if outdb[resourcename].find_one( {"_id": summary["_id"], "summary_version": summary["summary_version"] }, { "_id":1 } ) != None:
-                summaryOk = True
+                if outdb[resourcename].find_one( {"_id": summary["_id"], "summary_version": summary["summary_version"] }, { "_id":1 } ) != None:
+                    summaryOk = True
+            except InvalidDocument as exc:
+                logging.error("inserting summary document %s %s. %s",
+                              resourcename, summary["_id"], str(exc))
 
             timeseriesOk = False
             if timeseries != None:
@@ -96,8 +99,9 @@ def createsummary(totalprocs, procid):
                     outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
                     if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
                         timeseriesOk = True
-                except InvalidDocument as e:
-                    sys.stderr.write("Error inserting document {}\n".format(summary["_id"]) )
+                except InvalidDocument as exc:
+                    logging.error("inserting timeseries document %s %s %s",
+                                  resourcename, summary["_id"], str(exc))
                     timeseriesOk = False
             else:
                 timeseriesOk = True
@@ -115,7 +119,7 @@ def createsummary(totalprocs, procid):
         if processtimes['maxtime'] != 0:
             timewindows[resourcename] = processtimes
 
-    sys.stderr.write("{} Processor {} of {} exiting. Processed {}\n".format(datetime.datetime.utcnow().isoformat(), procid, totalprocs, ratecalc.count))
+    logging.info("Processor %s of %s exiting. Processed %s", procid, totalprocs, ratecalc.count)
 
     if ratecalc.count == 0:
         # No need to generate a report if no docs were processed
@@ -134,8 +138,8 @@ def createsummary(totalprocs, procid):
 
     try:
         outdb["journal"].insert( report )
-    except Exception as e:
-        sys.stderr.write("Error inserting report. Error: {}\n{}\n".format(e, report) )
+    except Exception as exc:
+        logging.error("inserting report. Error: %s %s", str(exc), str(report))
 
 
 def main():
@@ -143,6 +147,11 @@ def main():
     if len(sys.argv) == 1:
         print "Usage: " + sys.argv[0] + " [N SUBPROCESSES] [TOTAL INSTANCES] [INSTANCE ID]"
         sys.exit(1)
+
+    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%dT%H:%M:%S',
+                        level=logging.INFO)
+    logging.captureWarnings(True)
 
     nprocs = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     total_instances = int(sys.argv[2]) if len(sys.argv) > 2 else 1

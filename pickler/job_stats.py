@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-import datetime, errno, glob, numpy, os, sys, time, gzip
-from subprocess import Popen, PIPE
-import amd64_pmc, intel_process, batch_acct
+import datetime, numpy, os, sys, gzip
+import amd64_pmc, intel_process
 import re
 import procdump
 import string
@@ -35,12 +34,12 @@ if prog == "":
 
 def trace(fmt, *args):
     if verbose:
-        msg = fmt % args
-        sys.stderr.write(prog + ": " + msg)
+        logging.debug(prog + ": " + fmt, args)
 
 def error(fmt, *args):
-    msg = fmt % args
-    sys.stderr.write(prog + ": " + msg)
+    # Job-level errors are summarization process level wanrings since an error
+    # with one job does not prevent others from being processed
+    logging.warning(prog + ": " + fmt, args)
 
 RAW_STATS_TIME_MAX = 86400 + 2 * 3600
 RAW_STATS_TIME_PAD = 1200
@@ -295,9 +294,9 @@ class Host(object):
                     full_path = os.path.join(raw_host_stats_dir, ent)
                     path_list.append((full_path, ent_start))
                     self.trace("path `%s', start %d", full_path, ent_start)
-        except Exception as e:
-            print e
-            pass
+        except Exception as exc:
+            logging.error("get_stats_paths job %s. %s", self.job.id, exc)
+
         path_list.sort(key=lambda tup: tup[1])
         return path_list
 
@@ -372,7 +371,8 @@ class Host(object):
             except TypeError as e:
                 self.error("TypeError %s in %s line %s", str(e), self.filename, self.fileline)
         else:
-            print "Unregognised character \"{}\"".format(line)
+            logging.warning("Unregognised character \"%s\" in %s on line %s ",
+                            ch, self.filename, self.fileline)
             pass
 
     def setstate(self, newstate, reason = None):

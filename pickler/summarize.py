@@ -12,6 +12,7 @@ import traceback
 from scipy import stats
 from extra.catastrophe import Catastrophe
 from procdump import TaccProcDump
+import logging
 
 from timeseriessummary import TimeSeriesSummary
 
@@ -399,8 +400,7 @@ def summarize(j, lariatcache):
     ignorelist.append("osc")
     ignorelist.append("mdc")
 
-    if VERBOSE:
-        sys.stderr.write( "{} ID: {}\n".format( datetime.datetime.utcnow().isoformat(), j.acct['id'] ) )
+    logging.debug("ID: %s", j.acct['id'])
 
     walltime = max(j.end_time - j.start_time, 0)
 
@@ -443,9 +443,9 @@ def summarize(j, lariatcache):
                     indices[metricname][interface] = j.get_schema(metricname)[interface].index
                     isevent[metricname][interface] = j.get_schema(metricname)[interface].is_event
             except:
-                sys.stderr.write( 'ERROR: summary metric ' + str(interface) + ' not in the schema\n' )
-                sys.stderr.write( 'ERROR: %s\n' % sys.exc_info()[0] )
-                sys.stderr.write( '%s\n' % traceback.format_exc() )
+                logging.error("summary metric %s not in the schema", str(interface))
+                logging.error("%s", sys.exc_info()[0])
+                logging.error("%s", traceback.format_exc())
                 summaryDict['Error'].append('summary metric ' + str(interface) + ' not in the schema')
 
     nHosts = 0
@@ -700,8 +700,8 @@ def summarize(j, lariatcache):
                         summaryDict['schema'][k][l] = str( j.get_schema(k)[l] )
         except:
             if (summaryDict['nHosts'] != 0):
-                sys.stderr.write( 'ERROR: %s\n' % sys.exc_info()[0] )
-                sys.stderr.write( '%s\n' % traceback.format_exc() )
+                logging.error('%s', sys.exc_info()[0])
+                logging.error('%s', traceback.format_exc())
                 summaryDict['Error'].append("schema data not found")
 
     summaryDict['summary_version'] = SUMMARY_VERSION
