@@ -397,8 +397,6 @@ def summarize(j, lariatcache):
     # nfs metrics take up alot of space
     ignorelist.append("nfs")
     ignorelist.append("irq")
-    ignorelist.append("osc")
-    ignorelist.append("mdc")
 
     logging.debug("ID: %s", j.acct['id'])
 
