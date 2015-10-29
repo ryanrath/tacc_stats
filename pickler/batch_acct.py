@@ -66,6 +66,11 @@ class BatchAcct(object):
             d['cores'] = int(d['cores'])
             del d[None]
             #print 'after',d
+
+          if d['end_time'] == 0:
+              # Skip jobs that have no defined end time (occurs when certain schedulers do not allocate resources for job)
+              continue
+
           # Accounting records with pe_taskid != NONE are generated for
           # sub_tasks of a tightly integrated job and should be ignored.
           if start_time <= d['end_time'] and d['end_time'] < end_time:
