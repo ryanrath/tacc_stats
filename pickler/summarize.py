@@ -398,6 +398,9 @@ def summarize(j, lariatcache):
     ignorelist.append("nfs")
     ignorelist.append("irq")
 
+    # proc metrics are handled by dedicated proc code
+    ignorelist.append("proc")
+
     logging.debug("ID: %s", j.acct['id'])
 
     walltime = max(j.end_time - j.start_time, 0)
