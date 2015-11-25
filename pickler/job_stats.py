@@ -268,6 +268,8 @@ class Host(object):
         self.fileline = None
         self.tacc_version = "Unknown"
 
+        self.mismatch_schemas = {}
+
     def trace(self, fmt, *args):
         logging.debug( fmt % args )
 
@@ -314,6 +316,7 @@ class Host(object):
                     if schema:
                         file_schemas[type_name] = schema
                     else:
+                        self.mismatch_schemas[type_name] = 1
                         self.error("file `%s', type `%s', schema mismatch desc `%s'",
                                    fp.name, type_name, schema_desc)
                 elif c == SF_PROPERTY_CHAR:
@@ -420,7 +423,8 @@ class Host(object):
 
             schema = self.file_schemas.get(type_name)
             if not schema:
-                self.error("file `%s', unknown type `%s', discarding line `%s'",
+                if not type_name in self.mismatch_schemas:
+                    self.error("file `%s', unknown type `%s', discarding line `%s'",
                         self.filename, type_name, self.fileline)
                 return
 
