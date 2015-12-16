@@ -1,5 +1,6 @@
 import csv, os, subprocess, datetime, glob
 import time,calendar
+import codecs
 
 def factory(kind,acct_file,host_name_ext=''):
   if kind == 'SGE':
@@ -13,7 +14,7 @@ def factory(kind,acct_file,host_name_ext=''):
 
 def special_char_stripper(fp):
    for line in fp:
-      yield line.replace('\r', '')
+      yield line.replace('\r', '').encode('utf-8')
 
 class BatchAcct(object):
 
@@ -26,6 +27,9 @@ class BatchAcct(object):
     else:
         self.name_ext = ""
     self.delimiter = delimiter 
+
+  def fixuprecord(self, d):
+    pass
 
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
     """reader(start_time=0, end_time=9223372036854775807L, seek=0)
@@ -40,7 +44,7 @@ class BatchAcct(object):
         filelist = [ self.acct_file ]
 
     for fname in filelist:
-        file = open(fname)
+        file = codecs.open(fname, "r", "utf-8", errors="replace")
         if seek:
             file.seek(seek, os.SEEK_SET)
 
@@ -54,18 +58,7 @@ class BatchAcct(object):
 
           ## Clean up when colons exist in job name
           if None in d:
-            #print 'before',d
-            num_cols = len(d[None])
-            for cols in range(num_cols):
-              d['name'] = d['name']+':'+d['status']        
-              d['status'] = str(d['nodes'])
-              d['nodes'] = d['cores']
-              d['cores'] = d[None][0]
-              del d[None][0]
-            d['nodes'] = int(d['nodes'])
-            d['cores'] = int(d['cores'])
-            del d[None]
-            #print 'after',d
+            self.fixuprecord(d)
 
           if d['end_time'] == 0:
               # Skip jobs that have no defined end time (occurs when certain schedulers do not allocate resources for job)
@@ -193,6 +186,19 @@ class SLURMAcct(BatchAcct):
         return path
     return None
 
+  def fixuprecord(self, d):
+    """ Try to handle case where the name field contains the delimiter character """
+    num_cols = len(d[None])
+    for cols in range(num_cols):
+      d['name'] = d['name']+':'+d['status']        
+      d['status'] = str(d['nodes'])
+      d['nodes'] = d['cores']
+      d['cores'] = d[None][0]
+      del d[None][0]
+    d['nodes'] = int(d['nodes'])
+    d['cores'] = int(d['cores'])
+    del d[None]
+
 def isodate(s):
     """ Return the unix timestamp for a date represented in the LOCAL timezone """
     """ Note that it is strongly recommended to store dates with their timezone """
@@ -236,6 +242,15 @@ class SLURMNativeAcct(BatchAcct):
 
   def get_host_list_path(self,acct,host_list_dir):
     return None
+
+  def fixuprecord(self, d):
+    """ Try to handle case where the name field contains the delimiter character """
+    num_cols = len(d[None])
+    for cols in range(num_cols):
+      d['jobname'] = d['jobname']+'|'+d['timelimit']        
+      d['timelimit'] = d[None][0]
+      del d[None][0]
+    del d[None]
 
   def get_host_list(self, nodelist):
     
