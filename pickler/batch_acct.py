@@ -322,6 +322,14 @@ class XDcDBAcct(BatchAcct):
     BatchAcct.__init__(self,'XDcDB',acct_file,host_name_ext,"|")
 
   def get_host_list_path(self,acct,host_list_dir):
+    """Return the path of the host list written during the prolog."""
+    start_date = datetime.date.fromtimestamp(acct['start_time'])
+    base_glob = 'hostlist.' + str(acct['id'])
+    for days in (0, -1, 1):
+      yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
+      full_glob = os.path.join(host_list_dir, yyyy_mm_dd, base_glob)
+      for path in glob.iglob(full_glob):
+        return path
     return None
 
   def get_host_list(self, nodelist):
