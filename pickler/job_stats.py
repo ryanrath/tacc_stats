@@ -661,7 +661,7 @@ class Job(object):
                     if v < p:
                         fudged = False
                         # Looks like rollover.
-                        if e.width:
+                        if e.width and e.width < 64:
                             trace("time %d, counter `%s', rollover prev %d, curr %d\n",
                                   self.times[i], e.key, p, v)
                             r -= numpy.uint64(1L << e.width)
