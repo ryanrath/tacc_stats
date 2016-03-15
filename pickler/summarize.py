@@ -668,8 +668,8 @@ def summarize(j, lariatcache):
         converttooutput(series, summaryDict, j)
         converttooutput(totals, summaryDict, j)
 
-    summaryDict['analysis'] = {}
-    summaryDict['analysis']['catastrophe'] = compute_catastrophe(j)
+        summaryDict['analysis'] = {}
+        summaryDict['analysis']['catastrophe'] = compute_catastrophe(j)
 
     # add in lariat data
     if lariatcache != None:
