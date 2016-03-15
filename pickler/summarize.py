@@ -588,15 +588,6 @@ def summarize(j, lariatcache):
         statsOk = False
         summaryDict['Error'].append( "No CPU information" )
 
-    timeseries = None
-    timedata = None
-    if statsOk:
-        ttt = TimeSeriesSummary()
-        timeseries = ttt.process(j,indices)
-        # Temp disable bulk timedata generation until it has been validated
-        #timedata = gentimedata(j, indices, ignorelist, isevent)
-
-
     # Change series values into per entity values e.g. Memory per node or IO per node
     for metricname, ifstats in series.iteritems():
         for interface, devstats in ifstats.iteritems():
@@ -619,6 +610,14 @@ def summarize(j, lariatcache):
                 if interface != "all":
                     v = calculate_stats( numpy.array(cdata) / totalcpus )
                     addmetrics(summaryDict,j.overflows, "cpu", interface, v)
+
+    timeseries = None
+    timedata = None
+    if statsOk:
+        ttt = TimeSeriesSummary()
+        timeseries = ttt.process(j,indices)
+        # Temp disable bulk timedata generation until it has been validated
+        #timedata = gentimedata(j, indices, ignorelist, isevent)
 
     if statsOk:
         for mname, mdata in corederived.iteritems():
