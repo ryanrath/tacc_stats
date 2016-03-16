@@ -1,4 +1,5 @@
 #!/usr/bin/python
+""" helper functions to clean up tacc_stats data """
 import gzip
 import re
 import os
@@ -79,6 +80,55 @@ class DataSqlStore:
         self.record(jobid, hostname, timestamp, "end")
 
 class JobAccountFaker(object):
+    """ Retrieve job account data directly from the datawarehouse """
+    def __init__(self, dbname, mydefaults, resconf):
+        self.con = mdb.connect(db=dbname, read_default_file=mydefaults, cursorclass=MySQLdb.cursors.DictCursor)
+        self.resource_id = resconf['resource_id']
+        self.dbname = dbname
+
+    def getjob(self):
+        """ iterator to get a job account data object """
+
+        query = """
+SELECT 
+    jf.resource_id AS resource_id,
+    jf.local_jobid AS id,
+    jf.queue_id AS `queue`,
+    a.charge_number AS project,
+    s.username AS uid,
+    jf.submit_time_ts  AS queue_time,
+    jf.start_time_ts AS start_time,
+    jf.end_time_ts  AS end_time,
+    jf.nodecount AS nodes,
+    jf.processors AS cores,
+    jf.`name` AS job_name
+FROM
+    modw.jobfact jf
+        LEFT JOIN
+    {0}.accountfact af ON jf.resource_id = af.resource_id
+        AND jf.local_jobid = af.local_job_id
+        INNER JOIN modw.account a ON a.id = jf.account_id
+        INNER JOIN modw.systemaccount s ON s.id = jf.systemaccount_id
+WHERE
+    af.resource_id IS NULL
+        AND jf.resource_id = %s 
+        """.format(self.dbname)
+
+        cur = self.con.cursor()
+        cur.execute(query, (self.resource_id, ))
+        for rec in cur:
+
+            record = []
+            record.append(rec['resource_id'])
+            record.append("") # placeholder for cluster
+            record.append(rec['id'])
+            record.append(rec['start_time'])
+            record.append(rec['end_time'])
+            record.append(json.dumps(rec))
+
+            yield record
+
+class SuperMicJobAccountFaker(object):
     def __init__(self, dbname, mydefaults):
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults, cursorclass=MySQLdb.cursors.DictCursor)
 
@@ -275,7 +325,10 @@ def main():
 
         if mode == "createaccount" or mode == "both":
             dbconf = config['accountdatabase']
-            f = JobAccountFaker(dbconf['dbname'], dbconf['defaultsfile'])
+            if resourcename == "supermic":
+                f = SuperMicJobAccountFaker(dbconf['dbname'], dbconf['defaultsfile'])
+            else:
+                f = JobAccountFaker(dbconf['dbname'], dbconf['defaultsfile'], resource)
             dbif = DbInterface(dbconf["dbname"], dbconf["tablename"], dbconf["defaultsfile"] )
             for job in f.getjob():
                 dbif.insert(job)
