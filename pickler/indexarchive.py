@@ -318,7 +318,7 @@ def main():
         if resource['batch_system'] != "XDcDB":
             continue
     
-        if mode == "indexarchive" or mode == "both":
+        if resourcename == "supermic" and (mode == "indexarchive" or mode == "both"):
             a = ArchiveIndexer(config['accountdatabase'], resource)
             a.process(resource['tacc_stats_home'])
             print resourcename, str(a)
