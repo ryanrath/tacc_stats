@@ -99,6 +99,7 @@ SELECT
     jf.submit_time_ts  AS queue_time,
     jf.start_time_ts AS start_time,
     jf.end_time_ts  AS end_time,
+    jf.wallduration AS wall_time,
     jf.nodecount AS nodes,
     jf.processors AS cores,
     jf.`name` AS job_name
