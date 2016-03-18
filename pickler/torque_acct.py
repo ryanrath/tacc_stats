@@ -86,7 +86,7 @@ class TorqueAcct(object):
             return None
 
         parts = jobid.split(".") 
-        acct = {"local_job_id": jobid, "id": int(parts[0])}
+        acct = {"local_job_id": int(parts[0]), "id": jobid}
 
         jobrecs = record.split(" ")
         for jobrec in jobrecs:
