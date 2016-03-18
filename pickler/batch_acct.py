@@ -1,6 +1,7 @@
 import csv, os, subprocess, datetime, glob
 import time,calendar
 import codecs
+from torque_acct import TorqueAcct
 
 def factory(kind,acct_file,host_name_ext=''):
   if kind == 'SGE':
@@ -11,6 +12,8 @@ def factory(kind,acct_file,host_name_ext=''):
     return SLURMNativeAcct(acct_file,host_name_ext)
   elif kind == 'XDcDB':
     return XDcDBAcct(acct_file,host_name_ext)
+  elif kind == 'TORQUE':
+    return TorqueAcct(acct_file, host_name_ext)
 
 def special_char_stripper(fp):
    for line in fp:
