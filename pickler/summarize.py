@@ -16,7 +16,7 @@ import logging
 
 from timeseriessummary import TimeSeriesSummary
 
-SUMMARY_VERSION = "0.9.31"
+SUMMARY_VERSION = "0.9.32"
 
 VERBOSE = False
 

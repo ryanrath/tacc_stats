@@ -156,7 +156,8 @@ def ingest(config, end_time, start_time = None):
             else:
                 record.append("")
 
-            record.append( acct['id'] )
+            jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
+            record.append( jobid )
             record.append( acct['start_time'] )
             record.append( acct['end_time'] )
             record.append( json.dumps(acct) )

@@ -17,7 +17,7 @@ class TorqueAcct(object):
                 "owner": ["username", str],
                 "group": ["group", str],
                 "exec_host": ["host_list", self.parsehostlist],
-                "jobname": ["jobname", str],
+                "jobname": ["job_name", str],
                 "user": ["user", str],
                 "Exit_status": ["status", int],
                 "Error_Path": ["error_path", str],
@@ -86,7 +86,7 @@ class TorqueAcct(object):
             return None
 
         parts = jobid.split(".") 
-        acct = {"local_job_id": int(parts[0]), "id": int(parts[0]), "jobid": jobid}
+        acct = {"local_jobid": int(parts[0]), "id": jobid}
 
         jobrecs = record.split(" ")
         for jobrec in jobrecs:
