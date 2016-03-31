@@ -70,6 +70,8 @@ class TSPLBase:
       
       if not self.k1[0] in self.j.schemas:
         raise TSPLException(self.k1[0]+' not supported for job '+str(self.j.id))
+      if not self.k2[0] in self.j.schemas[self.k1[0]]:
+        raise TSPLException(self.k1[0]+"." + self.k2[0] +' not supported for job '+str(self.j.id))
 
     elif isinstance(k1,list) and isinstance(k2,list):
       self.k1=k1
