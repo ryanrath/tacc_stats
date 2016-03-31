@@ -134,7 +134,10 @@ class TaccStatsArchiveProcessor(object):
             if self.hostnameext != "" and (not hostname.endswith(self.hostnameext)):
                 hostname += "." + self.hostnameext
 
-            self.dbac.insert(hostname, archive, data.firsttimestamp, data.lasttimestamp, data.tacc_version)
+            if data.firsttimestamp != None:
+                self.dbac.insert(hostname, archive, data.firsttimestamp, data.lasttimestamp, data.tacc_version)
+            else:
+                logging.warning("corrupt archive %s", archive)
 
             logging.debug("processed archive %s", archive)
 
@@ -154,14 +157,14 @@ def parsetime(strtime):
     """
     m = re.search(r"^@(\d*)$", strtime)
     if m:
-        return datetime.datetime.fromtimestamp(int(m.group(1)))
+        return datetime.fromtimestamp(int(m.group(1)))
     if re.search(r"^\d{4}-\d{2}-\d{2}$", strtime):
-        return datetime.datetime.strptime(strtime, "%Y-%m-%d")
+        return datetime.strptime(strtime, "%Y-%m-%d")
     m = re.search(r"^(\d{4}-\d{2}-\d{2}).(\d{2}:\d{2}:\d{2})$", strtime)
     if m:
-        return datetime.datetime.strptime(m.group(1) + " " + m.group(2), "%Y-%m-%d %H:%M:%S")
+        return datetime.strptime(m.group(1) + " " + m.group(2), "%Y-%m-%d %H:%M:%S")
 
-    return datetime.datetime.strptime(strtime, "%c")
+    return datetime.strptime(strtime, "%c")
 
 
 def datetimetoposix(dt):
