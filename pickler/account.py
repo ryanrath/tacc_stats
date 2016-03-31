@@ -137,8 +137,11 @@ class DbAcct(object):
 
 
         
-def getconfig(configfilename = "config.json"):
+def getconfig(configfilename = None):
     
+    if configfilename == None:
+        configfilename = "config.json"
+
     with open(configfilename, "rb") as fp:
         config = json.load(fp)
 
