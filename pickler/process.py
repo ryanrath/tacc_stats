@@ -6,11 +6,12 @@ import summarize
 import sys
 import time
 import datetime
-from pymongo import MongoClient
-from pymongo.errors import InvalidDocument
 from multiprocessing import Process
 import socket
+from getopt import getopt
 import logging
+import output
+import os
 
 PROCESS_VERSION = 4
 
@@ -38,17 +39,18 @@ class RateCalculator:
     def rate(self):
         return self.rate
 
-def createsummary(totalprocs, procid):
+def createsummary(options, totalprocs, procid):
 
-    logging.info("Processor %s of %s starting", procid, totalprocs)
+    procidstr = "%s of %s " % (procid, totalprocs) if totalprocs != None else ""
+
+    logging.info("Processor " + procidstr + "starting")
+
     referencetime = int(time.time()) - ( 3 * 24 * 3600 ) 
 
-    config = account.getconfig()
+    config = account.getconfig(options['config'])
     dbconf = config['accountdatabase']
-    outdbconf = config['outputdatabase']
 
-    outclient = MongoClient(host=outdbconf['dbhost'])
-    outdb = outclient[outdbconf['dbname'] ]
+    outdb = output.factory(config['outputdatabase'])
 
     ratecalc = RateCalculator(procid)
     timewindows = dict()
@@ -59,9 +61,12 @@ def createsummary(totalprocs, procid):
             if settings['enabled'] == False:
                 continue
 
+        if options['resource'] not in (None, resourcename, str(settings['resource_id'])):
+            continue
+
         processtimes = { "mintime": 2**64, "maxtime": 0 }
 
-        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid)
+        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'])
 
         bacct = batch_acct.factory(settings['batch_system'], settings['acct_path'], settings['host_name_ext'] )
 
@@ -82,31 +87,9 @@ def createsummary(totalprocs, procid):
                 # reference time (which defaults to 3 days ago)
                 continue
 
-            summaryOk = False
-            try:
-                outdb[resourcename].update( {"_id": summary["_id"]}, summary, upsert=True )
-
-                if outdb[resourcename].find_one( {"_id": summary["_id"], "summary_version": summary["summary_version"] }, { "_id":1 } ) != None:
-                    summaryOk = True
-            except InvalidDocument as exc:
-                logging.error("inserting summary document %s %s. %s",
-                              resourcename, summary["_id"], str(exc))
-
-            timeseriesOk = False
-            if timeseries != None:
-                # If the timeseries data is present then it must got into the db
-                try:
-                    outdb["timeseries-" + resourcename].update( {"_id":timeseries["_id"]}, timeseries, upsert=True )
-                    if outdb["timeseries-" + resourcename].find_one( {"_id": timeseries["_id"]}, { "_id":1 } ) != None:
-                        timeseriesOk = True
-                except InvalidDocument as exc:
-                    logging.error("inserting timeseries document %s %s %s",
-                                  resourcename, summary["_id"], str(exc))
-                    timeseriesOk = False
-            else:
-                timeseriesOk = True
-
-            if summaryOk and timeseriesOk:
+            insertOk = outdb.insert(resourcename, summary, timeseries)
+            
+            if insertOk:
                 dbwriter.logprocessed( acct, settings['resource_id'], PROCESS_VERSION )
                 processtimes['mintime'] = min( processtimes['mintime'], summary["acct"]['end_time'] )
                 processtimes['maxtime'] = max( processtimes['maxtime'], summary["acct"]['end_time'] )
@@ -119,7 +102,7 @@ def createsummary(totalprocs, procid):
         if processtimes['maxtime'] != 0:
             timewindows[resourcename] = processtimes
 
-    logging.info("Processor %s of %s exiting. Processed %s", procid, totalprocs, ratecalc.count)
+    logging.info("Processor " + procidstr + "exiting. Processed %s", ratecalc.count)
 
     if ratecalc.count == 0:
         # No need to generate a report if no docs were processed
@@ -136,35 +119,71 @@ def createsummary(totalprocs, procid):
 
     report = { "proc": proc, "resources": timewindows }
 
-    try:
-        outdb["journal"].insert( report )
-    except Exception as exc:
-        logging.error("inserting report. Error: %s %s", str(exc), str(report))
+    outdb.logreport(report)
 
+def usage():
+    """ print usage """
+    print "usage: {0} [OPTS] [N SUBPROCESSES] [TOTAL INSTANCES] [INSTANCE ID]".format(os.path.basename(__file__))
+    print "  -r --resource=RES     process only jobs for the specified resource,"
+    print "                        if absent then all resources are processed"
+    print "  -l --localjobid=JOBID process only the job with the specified id"
+    print "                        this option requires the resource to be specified"
+    print "  -c --config=PATH      specify the path to the configuration directory"
+    print "  -d --debug            set log level to debug"
+    print "  -q --quiet            only log errors"
+    print "  -h --help             print this help message"
+
+def getoptions():
+    """ process comandline options """
+
+    retdata = {
+        "log": logging.INFO,
+        "resource": None,
+        "localjobid": None,
+        "config": None
+    }
+
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "localjobid=", "config=", "debug", "quiet", "help"])
+
+    for opt in opts:
+        if opt[0] in ("-r", "--resource"):
+            retdata['resource'] = opt[1]
+        elif opt[0] in ("-l", "--localjobid"):
+            retdata['localjobid'] = opt[1]
+        elif opt[0] in ("-d", "--debug"):
+            retdata['log'] = logging.DEBUG
+        elif opt[0] in ("-q", "--quiet"):
+            retdata['log'] = logging.ERROR
+        elif opt[0] in ("-c", "--config"):
+            retdata['config'] = opt[1]
+        elif opt[0] in ("-h", "--help"):
+            usage()
+            sys.exit(0)
+
+    retdata['nprocs'] = int(args[0]) if len(args) > 0 else 1
+    retdata['total_instances'] = int(args[1]) if len(args) > 1 else 1
+    retdata['instance_id'] = int(args[2]) if len(args) > 2 else 0
+
+    return retdata
 
 def main():
 
-    if len(sys.argv) == 1:
-        print "Usage: " + sys.argv[0] + " [N SUBPROCESSES] [TOTAL INSTANCES] [INSTANCE ID]"
-        sys.exit(1)
+    options = getoptions()
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%dT%H:%M:%S',
-                        level=logging.INFO)
+                        level=options['log'])
     logging.captureWarnings(True)
 
-    nprocs = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-    total_instances = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    instance_id = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+    total_procs = options['nprocs'] * options['total_instances']
+    start_offset = options['instance_id'] * options['nprocs']
 
-    total_procs = nprocs * total_instances
-
-    if nprocs == 1:
-        createsummary(None, None)
+    if options['nprocs'] == 1:
+        createsummary(options, None, None)
     else:
         proclist = []
-        for procid in xrange(nprocs):
-            p = Process( target=createsummary, args=(total_procs, (instance_id*nprocs) + procid) )
+        for procid in xrange(options['nprocs']):
+            p = Process( target=createsummary, args=(options, total_procs, start_offset + procid) )
             p.start()
             proclist.append(p)
 

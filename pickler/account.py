@@ -81,17 +81,31 @@ class DbLogger(object):
         self.con.commit()
 
 class DbAcct(object):
-    def __init__(self, resource_id, dbconf, process_version, totalprocs = None, procid = None):
+    def __init__(self, resource_id, dbconf, process_version, totalprocs = None, procid = None, local_jobid = None):
         self.con = mdb.connect(db=dbconf['dbname'], read_default_file=dbconf['defaultsfile'])
         self.tablename = dbconf['tablename']
         self.process_version = process_version
         self.resource_id = resource_id
+        self.local_jobid = local_jobid
         self.totalprocs = totalprocs
         self.procid = procid
 
-    def reader(self,start_time=None, end_time=None, seek=0):
-        """ seek parameter is unused. It is present for API compatibilty with file batch acct class """
+    def jobidreader(self, local_jobid):
+        query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND local_job_id = %s"
+        data = (self.resource_id, local_jobid)
+        if self.totalprocs != None and self.procid != None:
+            query += " AND (CRC32(local_job_id) %% %s) = %s"
+            data = data + ( self.totalprocs, self.procid )
+        query += " ORDER BY end_time_ts ASC"
 
+        cur = self.con.cursor()
+        cur.execute(query, data)
+
+        for record in cur:
+            r = json.loads(record[0])
+            yield r
+
+    def timereader(self,start_time=None, end_time=None, seek=0):
         query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND process_version != %s "
         data = ( self.resource_id, self.process_version )
         if start_time != None:
@@ -111,6 +125,16 @@ class DbAcct(object):
         for record in cur:
             r = json.loads(record[0])
             yield r
+
+    def reader(self,start_time=None, end_time=None, seek=0):
+        """ seek parameter is unused. It is present for API compatibilty with file batch acct class """
+        if self.local_jobid:
+            for record in self.jobidreader(self.local_jobid):
+                yield record
+        else:
+            for record in self.timereader(start_time, end_time, seek):
+                yield record
+
 
         
 def getconfig(configfilename = "config.json"):
