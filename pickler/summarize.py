@@ -16,7 +16,7 @@ import logging
 
 from timeseriessummary import TimeSeriesSummary
 
-SUMMARY_VERSION = "0.9.32"
+SUMMARY_VERSION = "0.9.33"
 
 VERBOSE = False
 
@@ -286,8 +286,10 @@ def calculate_stats(v):
             if len(v) > 2:
                 res['std'] = scipy.stats.tstd(v)
 
-        if 0 < v_avg:
+        if len(v) > 1 and abs(v_avg) > 0:
             res['cov'] = math.sqrt(v_var) / v_avg
+        else:
+            res['cov'] = 0.0
 
     return res
 
