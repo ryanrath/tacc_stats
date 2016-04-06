@@ -261,6 +261,7 @@ class Host(object):
         self.times = []
         self.raw_stats = {}
         self.marks = {}
+        self.rotatetimes = []
 
         self.state = PENDING_FIRST_RECORD
         self.timestamp = None
@@ -476,6 +477,7 @@ class Host(object):
                         self.trace("BEGIN_IN_MIDDLE {} {} line {} @ {} discard {} previous".format(self.name, self.filename, self.fileline, self.timestamp, len(self.times)-1 ) )
                         self.raw_stats = {}
                         self.times = [ self.timestamp ]
+                        self.rotatetimes = []
                 else:
                     self.setstate(ACTIVE, "seen begin marker")
                     self.marks['begin'] = True
@@ -484,6 +486,10 @@ class Host(object):
                 if self.state == ACTIVE:
                     self.times = self.times[:-1]
                     self.setstate(ACTIVE_IGNORE, "begin for another job")
+
+        if actions[0] == "rotate":
+            if self.state == ACTIVE or self.state == ACTIVE_IGNORE:
+                self.rotatetimes.append(self.timestamp)
 
         if actions[0] == "procdump":
             # procdump information is valid even when in active ignore
@@ -636,12 +642,15 @@ class Job(object):
         # TODO sort out host times
         host.times = []
         rmsjitter = 0.0
+        logrotates = []
         for i in xrange(0, m):
             t = self.times[i]
             while k + 1 < len(raw) and abs(raw[k + 1][0] - t) <= abs(raw[k][0] - t):
                 k += 1
             rmsjitter += (raw[k][0] - t)**2
             A[i] = raw[k][1]
+            if raw[k][0] in host.rotatetimes:
+                logrotates.append(i)
             host.times.append(raw[k][0])
 
         if m > 0:
@@ -658,7 +667,14 @@ class Job(object):
                 # Rebase, check for rollover.
                 for i in range(0, m):
                     v = A[i, j]
-                    if v < p:
+
+                    if i in logrotates and host.tacc_version == "2.2.1" and type_name.startswith('intel_') and i > 0:
+                        r = numpy.uint64(v) - A[i-1,j] 
+                        if i > 1:
+                            linear_interp = numpy.uint64(numpy.uint64(A[i-1, j] - A[i-2,j]) * numpy.uint64(host.times[i] - host.times[i-1]) ) / numpy.uint64(host.times[i-1] - host.times[i-2])
+                            r -= linear_interp
+                        fudged = True
+                    elif v < p:
                         fudged = False
                         # Looks like rollover.
                         if e.width and e.width < 64:
