@@ -27,6 +27,7 @@ class ProcFilter:
             'dmtcp_coordinator', 'dmtcp_coordinat', 'dmtcp_command', 'dmesg', 'df',
             'dbus-launch', 'dbus-daemon', 'cut', 'crond', 'cp', 'csh', 'cd',
             'clock-applet', 'cat', 'bash', 'bonobo-activation-server', 'awk', 'SCREEN',
+            'hald-addon-acpi', 'hald',
             'CROND', '/usr/lib64/nagios/plugins/check_procs', '/etc/vnc/Xvnc-core'])
         
         self.procfilter = re.compile('^/user/[a-z0-9]+/\.vnc/xstartup|^/var\/spool\/slurmd.+|.*pmi_proxy$')
@@ -47,6 +48,7 @@ class TaccProcDump:
     """ Process the proc information from tacc_stats version >= 2.1 """
     def __init__(self):
         self.procfilter = ProcFilter()
+        self.commandre = re.compile("(.*)/([0-9]*)$")
 
     def getproclist(self, job, uid=None):
         outprocs = dict()
@@ -54,6 +56,11 @@ class TaccProcDump:
         for host in job.hosts.itervalues():
             if "proc" in host.stats.keys():
                 for command, data in host.stats['proc'].iteritems():
+
+                    m = self.commandre.search(command)
+                    if m != None:
+                        command = m.group(1)
+
                     if self.procfilter.allow(command):
                         procuid = data[0, job.get_schema('proc')['Uid'].index]
                         mincpuallowed = min(data[:,job.get_schema('proc')['Cpus_allowed_list'].index])

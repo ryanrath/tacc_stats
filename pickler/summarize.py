@@ -729,17 +729,11 @@ def summarize(j, lariatcache):
         del summaryDict['Error']
 
     """ Process procDump information from the tacc_stats file itself """
-    if 'uid' in j.acct:
-        if "hostname" in j.acct and j.acct['hostname'] in j.hosts:
-            """ Deprecated procdump from the CCR branch of tacc_stats """
-            pl = j.hosts[j.acct['hostname']].procdump.getproclist(j.acct['uid'])
-        else:
-            """ procdump information from tacc_stats >= 2.1 """
-            taccproc = TaccProcDump()
-            pl = taccproc.getproclist(j, None)
+    taccproc = TaccProcDump()
+    pl = taccproc.getproclist(j, None)
 
-        if len(pl) > 0:
-            summaryDict['procDump'] = pl
+    if len(pl) > 0:
+        summaryDict['procDump'] = pl
 
     if walltime > 0 and len(totaltimes) > 0:
         summaryDict['timeoffset'] = { 'total': calculate_stats(totaltimes), 'start': calculate_stats(starttimes), 'end': calculate_stats(endtimes) }
