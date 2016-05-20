@@ -93,6 +93,10 @@ def gentimedata(j, indices, ignorelist, isevent):
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
             },
+            "intel_ivb": {
+                "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+                "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ]
+            },
             "intel_pmc3": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
@@ -390,7 +394,14 @@ def summarize(j, lariatcache):
     metrics = None
     statsOk = True
 
-    perinterface = [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci" ]
+    perinterface = [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci",
+                     "intel_ivb",
+                     "intel_ivb_cbo",
+                     "intel_ivb_hau",
+                     "intel_ivb_imc",
+                     "intel_ivb_pcu",
+                     "intel_ivb_r2pci"]
+
     conglomerates = [ "irq" ]
 
     # The ib and ib_ext counters are known to be incorrect on all tacc_stats systems
@@ -551,7 +562,7 @@ def summarize(j, lariatcache):
                         totals["cpu"]["all"] = []
                     totals["cpu"]["all"].append( sum( 1.0 * host.stats[metricname][device][-1,:] / hostwalltime) )
 
-                elif metricname == "intel_snb" or metricname == "intel_hsw":
+                elif metricname == "intel_snb" or metricname == "intel_hsw" or metricname == "intel_ivb":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
@@ -561,7 +572,7 @@ def summarize(j, lariatcache):
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
-                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc":
+                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc":
                     compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
 
                 elif metricname == "mem":

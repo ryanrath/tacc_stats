@@ -105,12 +105,26 @@ class TimeSeriesSummary(object):
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
             }, {
+                "metric": "intel_ivb_imc",
+                "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
+                "interfaces": [ "CAS_READS", "CAS_WRITES" ]
+            }, {
                 "metric": "intel_uncore",
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "L3_MISS_READ", "L3_MISS_WRITE" ]
             }],
             "l1dloads": [ {
                 "metric": "intel_snb",
+                "devicebased": True,
+                "formula": "numpy.diff(a[0]) / numpy.diff(a[1])",
+                "interfaces": ["LOAD_L1D_ALL", "CLOCKS_UNHALTED_CORE"]
+            }, {
+                "metric": "intel_hsw",
+                "devicebased": True,
+                "formula": "numpy.diff(a[0]) / numpy.diff(a[1])",
+                "interfaces": ["LOAD_L1D_ALL", "CLOCKS_UNHALTED_CORE"]
+            }, {
+                "metric": "intel_ivb",
                 "devicebased": True,
                 "formula": "numpy.diff(a[0]) / numpy.diff(a[1])",
                 "interfaces": ["LOAD_L1D_ALL", "CLOCKS_UNHALTED_CORE"]

@@ -8,10 +8,12 @@ class Catastrophe(object):
   k1={'amd64' : ['amd64_sock'],
           'intel': ['intel_pmc3'],
           'intel_hsw': ['intel_hsw'],
+          'intel_ivb': ['intel_ivb'],
       'intel_snb': ['intel_snb']}
   k2={'amd64' : ['DRAM'],
           'intel': ['MEM_LOAD_RETIRED_L1D_HIT'],
           'intel_hsw': ['LOAD_L1D_ALL'],
+          'intel_ivb': ['LOAD_L1D_ALL'],
       'intel_snb': ['LOAD_L1D_ALL']}
   comp_operator = '<'
 
