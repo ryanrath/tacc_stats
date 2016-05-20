@@ -729,9 +729,9 @@ class Job(object):
         if dev_name not in self.overflows[type_name]:
             self.overflows[type_name][dev_name] = dict()
         if key_name not in self.overflows[type_name][dev_name]:
-            self.overflows[type_name][dev_name][key_name] = []
+            self.overflows[type_name][dev_name][key_name] = set()
 
-        self.overflows[type_name][dev_name][key_name].append(host_name)
+        self.overflows[type_name][dev_name][key_name].add(host_name)
 
     def process_stats(self):
         for host in self.hosts.itervalues():

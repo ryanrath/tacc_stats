@@ -304,7 +304,7 @@ def addinstmetrics(summary, overflows, device, interface, instance, values):
         data = { 'avg': 0.0 }
 
     if device in overflows and interface in overflows[device] and instance in overflows[device][interface]:
-        data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(overflows[device][interface][instance]) }
+        data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(list(overflows[device][interface][instance])) }
     
     if device not in summary:
         summary[device.replace(".","-")] = {}
