@@ -29,7 +29,7 @@ class DbArchiveCache(object):
         self.resource_id = resource_id
 
         cur = self.con.cursor()
-        cur.execute("SELECT hostname FROM hosts WHERE resource_id = %s", resource_id)
+        cur.execute("SELECT hostname FROM hosts WHERE resource_id = %s", (resource_id, ))
         for host in cur:
             self._hostnamecache[host[0]] = 1
 
@@ -54,7 +54,7 @@ class DbArchiveCache(object):
         self.hostinsert(cur, hostname)
 
         if tacc_version not in self._versioncache:
-            cur.execute("INSERT IGNORE INTO version (name) VALUES (%s)", tacc_version)
+            cur.execute("INSERT IGNORE INTO version (name) VALUES (%s)", (tacc_version, ))
             self.con.commit()
             self._versioncache[tacc_version] = 1
 
@@ -257,7 +257,7 @@ class TaccStatsArchiveFinder(object):
             currtime = time.time()
             logging.debug("Processed %s of %s (time %s estimated completion %s", hostcount, len(hosts), currtime - starttime, datetime.fromtimestamp(starttime) + timedelta(seconds = (currtime - starttime) / hostcount * len(hosts)))
 
-DAY_DELTA = 7
+DAY_DELTA = 2
 
 
 def usage():
