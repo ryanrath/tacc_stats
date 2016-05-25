@@ -5,6 +5,7 @@
 import logging
 import sys
 import os
+import time
 from datetime import datetime, timedelta
 from getopt import getopt
 import re
@@ -32,29 +33,55 @@ class DbArchiveCache(object):
         for host in cur:
             self._hostnamecache[host[0]] = 1
 
+    def hostinsert(self, cur, hostname):
+        if hostname not in self._hostnamecache:
+            cur.execute("INSERT IGNORE INTO hosts (hostname, resource_id) VALUES (%s, %s)", [hostname, self.resource_id])
+            self.con.commit()
+            self._hostnamecache[hostname] = 1
+
+    def flush(self):
+        self.buffered += 1
+        if self.buffered > 100:
+            self.con.commit()
+            self.buffered = 0
+
     def insert(self, hostname, filename, start, end, tacc_version):
         """
         Insert a job record
         """
         cur = self.con.cursor()
-        if hostname not in self._hostnamecache:
-            cur.execute("INSERT IGNORE INTO hosts (hostname, resource_id) VALUES (%s, %s)", [hostname, self.resource_id])
-            self.con.commit()
-            self._hostnamecache[hostname] = 1
+
+        self.hostinsert(cur, hostname)
+
         if tacc_version not in self._versioncache:
             cur.execute("INSERT IGNORE INTO version (name) VALUES (%s)", tacc_version)
             self.con.commit()
             self._versioncache[tacc_version] = 1
 
-        query = """INSERT INTO archive (hostid, resource_id, filename, start_time_ts, end_time_ts, version) 
-                   VALUES( (SELECT id FROM hosts WHERE hostname = %s AND resource_id = %s),%s,%s,%s,%s,(SELECT id FROM version WHERE name = %s)) 
+        query = """INSERT INTO archive (hostid, resource_id, filename, start_time_ts, end_time_ts, version)
+                   VALUES( (SELECT id FROM hosts WHERE hostname = %s AND resource_id = %s),%s,%s,%s,%s,(SELECT id FROM version WHERE name = %s))
                    ON DUPLICATE KEY UPDATE start_time_ts=%s, end_time_ts=%s, version=(SELECT id FROM version WHERE name = %s)"""
         cur.execute(query, [hostname, self.resource_id, self.resource_id, filename, start, end, tacc_version, start, end, tacc_version])
+        self.flush()
 
-        self.buffered += 1
-        if self.buffered > 100:
-            self.con.commit()
-            self.buffered = 0
+    def inserthostlist(self, local_jobid, hostlist):
+        """ insert list of hostname for a job """
+        cur = self.con.cursor()
+
+        for host in hostlist:
+            self.hostinsert(cur, host)
+
+        query = "INSERT IGNORE INTO jobs (resource_id, local_jobid) VALUES (%s, %s)"
+        cur.execute(query, (self.resource_id, local_jobid))
+        self.con.commit()
+
+        query = """INSERT IGNORE INTO jobhosts (jobid, hostid)
+                   VALUES ( (SELECT id FROM jobs WHERE resource_id = %s AND local_jobid = %s),
+                            (SELECT id FROM hosts WHERE resource_id = %s AND hostname = %s) )"""
+
+        for host in hostlist:
+            cur.execute(query, (self.resource_id, local_jobid, self.resource_id, host))
+            self.flush()
 
     def postinsert(self):
         """
@@ -64,7 +91,7 @@ class DbArchiveCache(object):
 
 
 class BasicTaccArchiveParser(object):
-    """ Bare bones implementation of tacc_stats archive file parser used to 
+    """ Bare bones implementation of tacc_stats archive file parser used to
         retrieve file metadata. Will not find all possible problems with
         file corruption, but will catch things like empty files and corrupt
         gzip data """
@@ -177,6 +204,9 @@ def datetimetoposix(dt):
 class TaccStatsArchiveFinder(object):
     """ Helper class that finds all tacc_stats archive files in a directory
         mindate is the minimum datestamp of files that should be processed
+
+        The directory structure MUST be as follows:
+        topdir/HOSTNAME/[UNIXTIMESTAMP].gz
     """
 
     def __init__(self, mindate, pathfilter):
@@ -208,17 +238,26 @@ class TaccStatsArchiveFinder(object):
         if topdir == "":
             return
 
-        for (dirpath, subdirs, filenames) in os.walk(topdir):
-            for filename in filenames:
-                archivefile = os.path.join(dirpath, filename)
-                if filename.endswith(".gz") and self.filenameok(filename):
+        hosts = os.listdir(topdir)
+        if self.pathfilter != None:
+            hosts = [host for host in hosts if self.pathfilter.match(host) != None]
+
+        starttime = time.time()
+        hostcount = 0
+
+        for hostname in hosts:
+
+            dirpath = os.path.join(topdir, hostname)
+            for taccfile in os.listdir(dirpath):
+                archivefile = os.path.join(dirpath, taccfile)
+                if taccfile.endswith(".gz") and self.filenameok(taccfile):
                     yield archivefile
 
-            if self.pathfilter != None:
-                # In-place modification of subdirs
-                subdirs[:] = [subdir for subdir in subdirs if self.pathfilter.match(subdir) != None]
+            hostcount += 1
+            currtime = time.time()
+            logging.debug("Processed %s of %s (time %s estimated completion %s", hostcount, len(hosts), currtime - starttime, datetime.fromtimestamp(starttime) + timedelta(seconds = (currtime - starttime) / hostcount * len(hosts)))
 
-DAY_DELTA = 3
+DAY_DELTA = 7
 
 
 def usage():
@@ -242,7 +281,7 @@ def getoptions():
         "log": logging.INFO,
         "resource": None,
         "config": None,
-        "mindate": datetime.now() - timedelta(days=3)
+        "mindate": datetime.now() - timedelta(days=DAY_DELTA)
     }
 
     opts, _ = getopt(sys.argv[1:], "r:c:m:adqh", ["resource=", "config=", "mindate=", "all", "debug", "quiet", "help"])
