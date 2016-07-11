@@ -54,6 +54,13 @@ cpu_event_map = {
     'FIXED2'                   : 'CLOCKS_UNHALTED_REF,E',
 }
 
+## Fixed event map for tacc_stats version 2.2.0 and 2.3.0
+alt_fixed_eventmap = {
+    'FIXED0'                   : 'KERNEL_INSTRUCTIONS_RETIRED,E',
+    'FIXED1'                   : 'KERNEL_CLOCKS_UNHALTED_CORE,E',
+    'FIXED2'                   : 'KERNEL_CLOCKS_UNHALTED_REF,E',
+}
+
 ## CBo events
 def CBOX_PERF_EVENT(event, umask):
     return (event) | (umask << 8) | (0L << 17) | (0L << 18) | (0L << 19) | (1L << 22) | (0L << 23) | (1L << 24)
@@ -180,8 +187,10 @@ class reformat_counters:
 
         # Just need the first hosts schema
         stats = None
+        tacc_version = None
         for host in job.hosts.itervalues():
             if name in host.stats:
+                tacc_version = host.tacc_version
                 stats = host.stats[name]
                 break
 
@@ -229,7 +238,10 @@ class reformat_counters:
         # Schema appended for fixed ctrs 
         nr_fixed = len(self.fix_registers)
         for i in range(0,nr_fixed):
-            dev_schema.append(event_map['FIXED'+str(i)])
+            if tacc_version == "2.3.0" or tacc_version == "2.2.0":
+                dev_schema.append(alt_fixed_eventmap['FIXED'+str(i)])
+            else:
+                dev_schema.append(event_map['FIXED'+str(i)])
 
         dev_schema_desc = ' '.join(dev_schema) + '\n'
 
