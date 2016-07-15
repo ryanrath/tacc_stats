@@ -40,6 +40,10 @@ def generate_schema_defn(job):
                     info["source"] = { "type": "process", "name": "panfs_stat" }
             if k == "irq":
                 info["source"] = {"type": "procfs", "name": "/proc/interrupts" }
+            if k == "llite":
+                info['source'] = {'type': 'procfs', "name": "/proc/fs/lustre/llite"}
+            if k == "lnet":
+                info['source'] = {'type': 'procfs', "name": "/proc/sys/lnet/stats"}
             if k == "mem":
                 info["source"] = {"type": "sysfs", "name": "/sys/devices/system/node/node*/meminfo" }
             if k == "net":
