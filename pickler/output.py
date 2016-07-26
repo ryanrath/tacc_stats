@@ -25,7 +25,7 @@ class StdoutOutput(object):
 
 class MongoOutput(object):
     def __init__(self, dbconfig):
-        self.client = MongoClient(host=dbconfig['dbhost'])
+        self.client = MongoClient(dbconfig['uri'])
         self.db = self.client[dbconfig['dbname']]
 
     def insert(self, resourcename, summary, timeseries):
