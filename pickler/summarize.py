@@ -71,7 +71,7 @@ def compute_sum(stats, indices, a, b, out, hostwalltime):
 
 def addtoseries(interface, series, enties, data):
     if interface not in series:
-        series[interface] = data
+        series[interface] = numpy.array(data)
         enties[interface] = 1
     else:
         series[interface] += data
