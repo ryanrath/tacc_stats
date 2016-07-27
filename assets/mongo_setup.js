@@ -4220,7 +4220,7 @@ var summarydef = {
 };
 
 db = db.getSiblingDB("supremm");
-//db.schema.update({_id: sdef._id}, sdef, {upsert: true})
+
 var applicableVersion = ["0.9.28", "0.9.30", "0.9.31", "0.9.33"];
 var i;
 for (i = 0; i < applicableVersion.length; i++) {
@@ -4228,3 +4228,19 @@ for (i = 0; i < applicableVersion.length; i++) {
     summarydef.summary_version = applicableVersion[i];
     db.schema.update({_id: summarydef._id}, summarydef, {upsert: true})
 }
+
+summarydef._id = 'summary-0.9.34';
+summarydef.summary_version = '0.9.34';
+summarydef.definitions.maxmem = {
+    "documentation": "The maximum ratio of memory used to memory available for the nodes that were assigned to the job. Memory used value is obtained from the MemUsed statistic from the /sys/devices/system/node/node*/numastat file.",
+    "type": "instant",
+    "unit": "ratio"
+};
+summarydef.definitions.maxmemminus = {
+    "documentation": "The maximum ratio of memory used to memory available for the nodes that were assigned to the job. The memory used value does not include the memory usage from the kernel page and slab caches. The memory statistics are obtained from the /sys/devices/system/node/node*/numastat file.",
+    "type": "instant",
+    "unit": "ratio"
+};
+
+db.schema.update({_id: summarydef._id}, summarydef, {upsert: true})
+

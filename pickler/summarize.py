@@ -16,7 +16,7 @@ import logging
 
 from timeseriessummary import TimeSeriesSummary
 
-SUMMARY_VERSION = "0.9.33"
+SUMMARY_VERSION = "0.9.34"
 
 VERBOSE = False
 
@@ -467,6 +467,7 @@ def summarize(j, lariatcache):
 
     nHosts = 0
     corederived = { "cpicore": [], "cpiref": [], "cpldref": [] }
+    nodederived = {'maxmem': [], 'maxmemminus': []}
     socketderived = { "membw": [] }
 
     totaltimes = []
@@ -502,6 +503,8 @@ def summarize(j, lariatcache):
           in host.stats.keys():
             nCoresPerSocket = len(host.stats['cpu']) \
               // len(host.stats['mem'])
+
+        hostmemory = {}
 
         for metricname in indices.keys():
             if metricname in ignorelist:
@@ -597,8 +600,19 @@ def summarize(j, lariatcache):
 
                         addtoseries("used_minus_diskcache", series[metricname], enties[metricname], memstat)
 
+                        addtoseries('hosttotal', hostmemory, enties[metricname], host.stats[metricname][device][1:ndatapoints,indices['mem']['MemTotal']])
+                        addtoseries('hostused',  hostmemory, enties[metricname], host.stats[metricname][device][1:ndatapoints, muindex])
+                        addtoseries('hostusedminus',  hostmemory, enties[metricname], memstat * nCoresPerSocket)
+
             # end for device
-        # end loop over hosts
+
+        # end loop over interfaces
+
+        if 'hostused' in hostmemory:
+            nodederived['maxmem'].append(numpy.amax(hostmemory['hostused'] * 1.0 / hostmemory['hosttotal']))
+            nodederived['maxmemminus'].append(numpy.amax(hostmemory['hostusedminus'] * 1.0 / hostmemory['hosttotal']))
+
+    # end loop over hosts
 
     if 'cpu' not in totals or 'all' not in totals['cpu']:
         statsOk = False
@@ -646,6 +660,10 @@ def summarize(j, lariatcache):
 
         for mname, mdata in socketderived.iteritems():
             # Store socket derived metrics
+            if len(mdata) > 0:
+                summaryDict[mname] = calculate_stats(mdata)
+
+        for mname, mdata in nodederived.iteritems():
             if len(mdata) > 0:
                 summaryDict[mname] = calculate_stats(mdata)
 
