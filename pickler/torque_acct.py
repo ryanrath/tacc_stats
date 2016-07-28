@@ -34,6 +34,7 @@ class TorqueAcct(object):
                 "Resource_List.host": ["requested_host", str],
                 "Resource_List.neednodes": ["requested_neednodes", str],
                 "Resource_List.mem": ["requested_memory", str],
+                "Resource_List.pmem": ["requested_vmemory", str],
                 "resources_used.cput": ["cpu_time", str],
                 "resources_used.mem": ["mem_used", str],
                 "resources_used.vmem": ["vmem_used", str],
