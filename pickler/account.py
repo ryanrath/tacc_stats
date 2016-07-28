@@ -6,6 +6,7 @@ import batch_acct
 import json
 import sys
 import time
+from summarize import SUMMARY_VERSION
 
 VERSION_NUMBER = 1
 
@@ -31,6 +32,7 @@ class DbInterface:
                 "process_version INT NOT NULL DEFAULT -1," + \
                 "process_timestamp TIMESTAMP," + \
                 "ingest_version INT NOT NULL," + \
+                "summary_version CHAR(8) NOT NULL DEFAULT 'na'," + \
                 "record BLOB," + \
                 "UNIQUE (resource_id,local_job_id,cluster,end_time_ts)," + \
                 "INDEX (end_time_ts,resource_id,process_version)," + \
@@ -71,10 +73,10 @@ class DbLogger(object):
 
     def logprocessed(self, acct, resource_id, version):
 
-        query = "UPDATE " + self.tablename + " SET process_version = %s WHERE resource_id = %s AND local_job_id = %s AND cluster = %s AND end_time_ts = %s"
+        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND cluster = %s AND end_time_ts = %s"
         cluster = acct['cluster'] if 'cluster' in acct else ""
         local_jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
-        data = ( version, resource_id, local_jobid, cluster, acct['end_time'] )
+        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, cluster, acct['end_time'] )
 
         cur = self.con.cursor()
         cur.execute(query, data)
