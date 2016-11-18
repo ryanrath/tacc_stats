@@ -1,7 +1,7 @@
-import csv, os, subprocess, datetime, glob
-import time,calendar
+import csv, os, datetime, glob
 import codecs
 from torque_acct import TorqueAcct
+from parsers import isodate_pacific
 
 def factory(kind,acct_file,host_name_ext=''):
   if kind == 'SGE':
@@ -10,6 +10,8 @@ def factory(kind,acct_file,host_name_ext=''):
     return SLURMAcct(acct_file,host_name_ext)
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
+  elif kind == 'SLURMNative2':
+    return SLURMNative2Acct(acct_file,host_name_ext)
   elif kind == 'XDcDB':
     return XDcDBAcct(acct_file,host_name_ext)
   elif kind == 'TORQUE':
@@ -202,12 +204,6 @@ class SLURMAcct(BatchAcct):
     d['cores'] = int(d['cores'])
     del d[None]
 
-def isodate(s):
-    """ Return the unix timestamp for a date represented in the LOCAL timezone """
-    """ Note that it is strongly recommended to store dates with their timezone """
-    """ information. The absence of the timezone means that some dates are ambigous """
-    return int(time.mktime(time.strptime(s,'%Y-%m-%dT%H:%M:%S')))
-
 class SLURMNativeAcct(BatchAcct):
   """ Process accounting data produced by the sacct command with the following """
   """ flags. """
@@ -300,6 +296,32 @@ class SLURMNativeAcct(BatchAcct):
           a['host_list'] = self.get_host_list(a['node_list'])
           a['hostname'] = a['host_list'][0]
           yield a
+
+class SLURMNative2Acct(SLURMNativeAcct):
+  """ Process accounting data produced by the sacct command used by tacc_stats """
+
+  def __init__(self,acct_file,host_name_ext):
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('uid',                         str, 'User that is running the job'),
+      ('project',                     str, 'Job account'),
+      ('start_time',                  isodate_pacific, 'Time job started to run'),
+      ('end_time',                    isodate_pacific, 'Time job ended'),
+      ('queue_time',                  isodate_pacific, 'Time the job was submitted'),
+      ('queue',                       str, 'Job partition'),
+      ('timelimit',                   str, 'Assigned time limit'),
+      ('name',                        str, 'Job name'),
+      ('status',                      str, 'Exit status of the job'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('cores',                       int, 'Number of cores requested'),
+      ('node_list',                   str, 'Nodes used in job'),
+      )
+
+    BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
+
+  def fixuprecord(self, d):
+      pass
 
 class XDcDBAcct(BatchAcct):
   """ Process accounting data produced by grabbing it from the modw.jobfact 
