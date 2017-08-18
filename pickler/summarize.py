@@ -16,7 +16,7 @@ import logging
 
 from timeseriessummary import TimeSeriesSummary
 
-SUMMARY_VERSION = "0.9.34"
+SUMMARY_VERSION = "0.9.35"
 
 VERBOSE = False
 
@@ -99,6 +99,9 @@ def gentimedata(j, indices, ignorelist, isevent):
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ]
             },
+        "intel_knl": {
+            "meancpiref":  ["numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED"]
+        },
             "intel_pmc3": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
@@ -371,6 +374,11 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
 def getperinterfacemetrics():
     return [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci",
+             "intel_knl",
+             "intel_knl_mc_uclk",
+             "intel_knl_mc_dclk",
+             "intel_knl_edc_eclk",
+             "intel_knl_edc_uclk",
                      "intel_ivb",
                      "intel_ivb_cbo",
                      "intel_ivb_hau",
@@ -481,6 +489,7 @@ def summarize(j, lariatcache):
     #  interface  - the interface exposed for the metric (such as user, system)
     #  device     - the name of the device (ie cpu0, numanode0, eth0 )
     tacc_version = []
+    cpus_combined = False
 
     for host in j.hosts.itervalues():  # for all the hosts present in the file
         nHosts += 1
@@ -505,6 +514,12 @@ def summarize(j, lariatcache):
           in host.stats.keys():
             nCoresPerSocket = len(host.stats['cpu']) \
               // len(host.stats['mem'])
+
+        if 'cpu' in host.stats.keys():
+            cpukeys = host.stats['cpu'].keys()
+            if len(cpukeys) == 1 and '-' in cpukeys:
+                cpus_combined = True
+
 
         hostmemory = {}
 
@@ -576,13 +591,19 @@ def summarize(j, lariatcache):
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
+                elif metricname == "intel_knl":
+                    if metricname not in j.overflows:
+                        compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
+                        compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+
                 elif metricname == "intel_pmc3":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
-                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc":
-                    compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
+                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
+                    if metricname not in j.overflows:
+                        compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
 
                 elif metricname == "mem":
                     if 'MemUsed' in indices[metricname] and 'FilePages' in indices[metricname] and 'Slab' in indices[metricname]:
@@ -635,7 +656,8 @@ def summarize(j, lariatcache):
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
         summaryDict['cpuall'] = calculate_stats(totalcpus)
-        if min(totalcpus) < 90.0 or max(totalcpus) > 105.0:
+
+        if cpus_combined == False and (min(totalcpus) < 90.0 or max(totalcpus) > 105.0):
             summaryDict['Error'].append("Corrupt CPU counters")
             statsOk = False
         else:
@@ -647,7 +669,7 @@ def summarize(j, lariatcache):
     timeseries = None
     timedata = None
     if statsOk:
-        ttt = TimeSeriesSummary()
+        ttt = TimeSeriesSummary(cpus_combined)
         timeseries = ttt.process(j,indices)
         # Temp disable bulk timedata generation until it has been validated
         #timedata = gentimedata(j, indices, ignorelist, isevent)

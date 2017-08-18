@@ -5,6 +5,7 @@ import base64
 import StringIO
 import re
 import operator
+from linuxhelpers import parsecpusallowed
 
 class ProcFilter:
     def __init__(self):
@@ -48,16 +49,50 @@ class TaccProcDump:
     """ Process the proc information from tacc_stats version >= 2.1 """
     def __init__(self):
         self.procfilter = ProcFilter()
-        self.commandre = re.compile("(.*)/([0-9]*)$")
+        self.commandre_v1 = re.compile("(.*)/([0-9]*)$")
+        self.commandre_v2 = re.compile("(.*)/([0-9]+)/([0-9,-]+)/([0-9,-]+)$")
 
     def getproclist(self, job, uid=None):
+        if job.get_schema('proc') == None:
+            return dict()
+
+        if 'Cpus_allowed_list' in job.get_schema('proc'):
+            return self.getproc_v1(job, uid)
+        else:
+            return self.getproc_v2(job, uid)
+
+    def getproc_v2(self, job, uid):
+        outprocs = dict()
+
+        for host in job.hosts.itervalues():
+            if "proc" in host.stats.keys():
+                for procstr, data in host.stats['proc'].iteritems():
+
+                    m = self.commandre_v2.search(procstr)
+                    if m == None:
+                        continue
+                    command = m.group(1)
+
+                    if self.procfilter.allow(command):
+                        procuid = data[0, job.get_schema('proc')['Uid'].index]
+                        if uid == None or uid == procuid:
+                            outprocs[command] = parsecpusallowed(m.group(3))
+
+            if len(outprocs) > 0:
+                break
+
+        # sort results by the cpus allowed value. This will
+        # prefer commands that were pinned to the fewest cpus (ie are most likely to be parallel codes)
+        return [x[0] for x in sorted(outprocs.items(), key=lambda x: len(x[1]))]
+
+    def getproc_v1(self, job, uid):
         outprocs = dict()
 
         for host in job.hosts.itervalues():
             if "proc" in host.stats.keys():
                 for command, data in host.stats['proc'].iteritems():
 
-                    m = self.commandre.search(command)
+                    m = self.commandre_v1.search(command)
                     if m != None:
                         command = m.group(1)
 

@@ -38,7 +38,7 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
     totals = None
     for devstats in hoststats[metricname].itervalues():
-        if totals == None:
+        if totals is None:
             if interface == "all":
                 totals = numpy.sum(devstats, axis = 1)
             else:
@@ -87,12 +87,12 @@ def computesubsamples(hosttimes, timedeltas):
 
 class TimeSeriesSummary(object):
 
-    def __init__(self):
+    def __init__(self, cpus_combined):
         self.hostmap = {}
         self.metrics = {
             "cpuuser": [ {
                 "metric": "cpu",
-                "devicebased": True,
+                "devicebased": cpus_combined == False,
                 "formula": "numpy.diff(a[0]) * 100.0 / numpy.diff(a[1])",
                 "interfaces": [ "user", "all" ]
             } ] ,
@@ -102,6 +102,10 @@ class TimeSeriesSummary(object):
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
             }, {
                 "metric": "intel_hsw_imc",
+                "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
+                "interfaces": [ "CAS_READS", "CAS_WRITES" ]
+            }, {
+                "metric": "intel_knl_mc_dclk",
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
             }, {
@@ -153,7 +157,11 @@ class TimeSeriesSummary(object):
                 "formula": "numpy.diff( a[0] + a[1] ) / delta_t / MEGA",
                 "interfaces": [ "tx_bytes", "rx_bytes" ]
                 # TODO - subtract the lnet.tx and rx_bytses data
-            } ]
+            }, {
+                "metric": "opa",
+                "formula": "numpy.diff( a[0] + a[1] ) / delta_t / MEGA",
+                "interfaces": [ "portXmitData", "portRcvData" ]
+                }]
         }
 
     def process(self, j, indices):
@@ -185,7 +193,7 @@ class TimeSeriesSummary(object):
         for outmetric, setlist in self.metrics.iteritems():
             for settings in setlist:
                 outdata[outmetric] = self.get_minmaxmed_data(j, indices, settings)
-                if outdata[outmetric] == None:
+                if outdata[outmetric] is None:
                     del outdata[outmetric]
                 else:
                     break
@@ -237,7 +245,7 @@ class TimeSeriesSummary(object):
 
         for hostidx, host in enumerate(j.hosts.itervalues()):
             data = self.getvalues(settings['metric'], settings['formula'], settings['interfaces'], j, host, indices)
-            if data == None:
+            if data is None:
                 return None
 
             results['hosts'][str(hostidx)] = {}
@@ -257,7 +265,7 @@ class TimeSeriesSummary(object):
 
         for hostidx, host in enumerate(j.hosts.itervalues()):
             data = self.getvalues(settings['metric'], settings['formula'], settings['interfaces'], j, host, indices)
-            if data == None:
+            if data is None:
                 return None
             d[hostidx,:] = data
 
@@ -300,7 +308,7 @@ class TimeSeriesSummary(object):
         for outmetric, setlist in self.metrics.iteritems():
             for settings in setlist:
                 outdata[outmetric] = self.get_timeseries_data(j, indices, settings)
-                if outdata[outmetric] == None:
+                if outdata[outmetric] is None:
                     del outdata[outmetric]
                 else:
                     break
