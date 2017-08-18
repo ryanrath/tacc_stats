@@ -53,6 +53,9 @@ class TaccProcDump:
         self.commandre_v2 = re.compile("(.*)/([0-9]+)/([0-9,-]+)/([0-9,-]+)$")
 
     def getproclist(self, job, uid=None):
+        if job.get_schema('proc') == None:
+            return dict()
+
         if 'Cpus_allowed_list' in job.get_schema('proc'):
             return self.getproc_v1(job, uid)
         else:
