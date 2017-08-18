@@ -479,6 +479,7 @@ def summarize(j, lariatcache):
     #  interface  - the interface exposed for the metric (such as user, system)
     #  device     - the name of the device (ie cpu0, numanode0, eth0 )
     tacc_version = []
+    cpus_combined = False
 
     for host in j.hosts.itervalues():  # for all the hosts present in the file
         nHosts += 1
@@ -503,6 +504,12 @@ def summarize(j, lariatcache):
           in host.stats.keys():
             nCoresPerSocket = len(host.stats['cpu']) \
               // len(host.stats['mem'])
+
+        if 'cpu' in host.stats.keys():
+            cpukeys = host.stats['cpu'].keys()
+            if len(cpukeys) == 1 and '-' in cpukeys:
+                cpus_combined = True
+
 
         hostmemory = {}
 
@@ -632,7 +639,8 @@ def summarize(j, lariatcache):
         # cpu usage
         totalcpus = numpy.array(totals['cpu']['all'])
         summaryDict['cpuall'] = calculate_stats(totalcpus)
-        if min(totalcpus) < 90.0 or max(totalcpus) > 105.0:
+
+        if cpus_combined == False and (min(totalcpus) < 90.0 or max(totalcpus) > 105.0):
             summaryDict['Error'].append("Corrupt CPU counters")
             statsOk = False
         else:
