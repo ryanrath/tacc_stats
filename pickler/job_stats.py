@@ -572,7 +572,7 @@ class Job(object):
             if not path:
                 if self.end_time - self.start_time > 0:
                     # Only care about missing hosts if the job actually ran!
-                    self.error("no host list found")
+                    self.error("no host list found in dir " + self.host_list_dir)
                 return False
             try:
                 with open(path) as file:
