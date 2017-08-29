@@ -49,6 +49,8 @@ def compute_catastrophe(j):
         c = Catastrophe()
         if c.setup(j):
             c.compute_metric()
+            if c.metric > 1000000.0:
+                c.metric = 999999.0
             return c.metric
         else:
             return { 'error': 'setup failed' }
@@ -569,9 +571,10 @@ def summarize(j, lariatcache):
                     totals["cpu"]["all"].append( sum( 1.0 * host.stats[metricname][device][-1,:] / hostwalltime) )
 
                 elif metricname == "intel_snb" or metricname == "intel_hsw" or metricname == "intel_ivb":
-                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
-                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
-                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
+                    if metricname not in j.overflows:
+                        compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
+                        compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+                        compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
                 elif metricname == "intel_pmc3":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
