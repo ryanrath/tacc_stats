@@ -1,4 +1,4 @@
-import csv, os, datetime, glob
+import csv, os, datetime, glob, re
 import codecs
 from torque_acct import TorqueAcct
 from parsers import isodate_pacific
@@ -40,10 +40,19 @@ class BatchAcct(object):
     """reader(start_time=0, end_time=9223372036854775807L, seek=0)
     Return an iterator for all jobs that finished between start_time and end_time.
     """
+    datere = re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})\.[a-z]+')
+
     filelist = []
     if os.path.isdir(self.acct_file):
         for dir_name, subdir_list, file_list in os.walk(self.acct_file):
             for fname in file_list:
+                mtch = datere.match(fname)
+                if mtch:
+                    # date stamped filename
+                    filets = (datetime.datetime(year=int(mtch.group(1)), month=int(mtch.group(2)), day=int(mtch.group(3))) - datetime.datetime(1970, 1, 1)).total_seconds() + 24*3600
+                    if filets < start_time:
+                        continue
+
                 filelist.append( os.path.join(self.acct_file,dir_name,fname) )
     else:
         filelist = [ self.acct_file ]
