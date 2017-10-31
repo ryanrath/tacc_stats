@@ -349,7 +349,12 @@ def getnumhosts(acct):
     if 'nnodes' in acct:
         return int(acct['nnodes'])
     if 'slots' in acct:
-        return int(acct['slots']) / 12
+        if 'granted_pe' in acct:
+            if acct['granted_pe'].endswith('way'):
+                ppn = int(acct['granted_pe'][:-3])
+                return int(acct['slots']) / ppn
+        else:
+            return int(acct['slots']) / 12
 
 def getinterfacestats(hoststats, metricname, interface, indices):
 
