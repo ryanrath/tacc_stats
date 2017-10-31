@@ -16,7 +16,7 @@ import logging
 
 from timeseriessummary import TimeSeriesSummary
 
-SUMMARY_VERSION = "0.9.35"
+SUMMARY_VERSION = "0.9.36"
 
 VERBOSE = False
 
@@ -666,10 +666,18 @@ def summarize(j, lariatcache):
             summaryDict['Error'].append("Corrupt CPU counters")
             statsOk = False
         else:
+            # Effective CPUS defined as those cores where the average activity was higher
+            # than 5%
+            effective = (numpy.array(totals['cpu']['idle']) / totalcpus) < 0.95
+
             for interface, cdata in totals['cpu'].iteritems():
                 if interface != "all":
-                    v = calculate_stats( numpy.array(cdata) / totalcpus )
+                    ncdata = numpy.array(cdata) / totalcpus
+                    v = calculate_stats(ncdata)
                     addmetrics(summaryDict,j.overflows, "cpu", interface, v)
+
+                    eff = calculate_stats(numpy.compress(effective, ncdata))
+                    addmetrics(summaryDict,j.overflows, "cpueff", interface, eff)
 
     timeseries = None
     timedata = None
