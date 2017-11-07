@@ -1,22 +1,32 @@
 #!/usr/bin/env python
-import datetime, errno, glob, gzip, numpy, os, sys, time
-import amd64_pmc, sge_acct
+import datetime, numpy, os, sys, gzip
+import amd64_pmc, intel_process
+import re
+import procdump
+import string
+import math
+
+import logging
+
+if sys.version.startswith("3"):
+    import io
+    io_method = io.BytesIO
+else:
+    import cStringIO
+    io_method = cStringIO.StringIO
+    #import io
+    #io.BufferedIOBase
+if sys.version.startswith("2.6"):
+    from backport_collections import OrderedDict
+else:
+    from collections import OrderedDict
 
 verbose = os.getenv('TACC_STATS_VERBOSE')
 
 if not verbose:
     numpy.seterr(over='ignore')
-
-stats_home = os.getenv('TACC_STATS_HOME', '/scratch/projects/tacc_stats')
-
-# raw_stats_dir/HOST/TIMESTAMP: raw stats files.
-raw_stats_dir = os.getenv('TACC_STATS_RAW', os.path.join(stats_home, 'archive'))
-
-# prolog_host_lists/YYYY/MM/DD/prolog_hostfile.JOBID.*.
-# Symbolic link to /share/sge6.2/default/tacc/hostfile_logs.
-host_list_dir = os.getenv('TACC_STATS_HOSTFILES', os.path.join(stats_home, 'hostfiles'))
-
-scheduler = os.getenv('TACC_STATS_JOB_SCHEDULER')
+else:
+    logging.basicConfig(level=logging.DEBUG)
 
 prog = os.path.basename(sys.argv[0])
 if prog == "":
@@ -25,11 +35,13 @@ if prog == "":
 def trace(fmt, *args):
     if verbose:
         msg = fmt % args
-        sys.stderr.write(prog + ": " + msg)
+        logging.debug(prog + ": " + msg)
 
 def error(fmt, *args):
+    # Job-level errors are summarization process level wanrings since an error
+    # with one job does not prevent others from being processed
     msg = fmt % args
-    sys.stderr.write(prog + ": " + msg)
+    logging.warning(prog + ": " + msg)
 
 RAW_STATS_TIME_MAX = 86400 + 2 * 3600
 RAW_STATS_TIME_PAD = 1200
@@ -39,6 +51,61 @@ SF_DEVICES_CHAR = '@'
 SF_COMMENT_CHAR = '#'
 SF_PROPERTY_CHAR = '$'
 SF_MARK_CHAR = '%'
+
+KEEP_EDITS = False
+
+def schema_fixup(type_name, desc):
+    """ This function implements a workaround for a known issue with incorrect schema """
+    """ definitions for irq, block and sched tacc_stats metrics. """
+
+    if type_name == "irq":
+        # All of the irq metrics are 32 bits wide
+        res = ""
+        for token in desc.split():
+            res += token.strip() + ",W=32 "
+        return res
+
+    elif type_name == "sched":
+        # Most sched counters are 32 bits wide with 3 exceptions
+        res = ""
+        sixtyfourbitcounters = [ "running_time,E,U=ms", "waiting_time,E,U=ms", "pcount,E" ]
+        for token in desc.split():
+            if token in sixtyfourbitcounters:
+                res += token.strip() + " "
+            else:
+                res += token.strip() + ",W=32 "
+        return res
+    elif type_name == "block":
+        # Most block counters are 64bits wide with a few exceptions
+        res = ""
+        thirtytwobitcounters = [ "rd_ticks,E,U=ms", "wr_ticks,E,U=ms", "in_flight", "io_ticks,E,U=ms", "time_in_queue,E,U=ms" ]
+        for token in desc.split():
+            if token in thirtytwobitcounters:
+                res += token.strip() + ",W=32 "
+            else:
+                res += token.strip() + " "
+        return res
+    elif type_name == "panfs":
+        # The syscall_*_(n+)s stats are not events
+        res = ""
+        for token in desc.split():
+            token = token.strip()
+            if token.startswith("syscall_") and ( token.endswith("_s,E,U=s") or token.endswith("_ns,E,U=ns")):
+                res += string.replace(token, "E,", "") + " "
+            else:
+                res += token + " "
+        return res
+    elif type_name == "ib":
+        res = ""
+        for token in desc.split():
+            token = token.strip()
+            if not token.endswith(",W=32"):
+                res += token.strip() + ",W=32 "
+            else:
+                res += token.strip() + " "
+        return res
+
+    return desc
 
 class SchemaEntry(object):
     __slots__ = ('key', 'index', 'is_control', 'is_event', 'width', 'mult', 'unit')
@@ -156,28 +223,17 @@ class Schema(dict):
         return self._value_list
 
 
-def get_host_list_path(acct):
-    """Return the path of the host list written during the prolog."""
-    # Example: /share/sge6.2/default/tacc/hostfile_logs/2011/05/19/prolog_hostfile.1957000.IV32627
-    start_date = datetime.date.fromtimestamp(acct['start_time'])
-    if scheduler == 'sge':
-        base_glob = 'prolog_hostfile.' + str(acct['id']) + '.*'
-        for days in (0, -1, 1):
-            yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
-            full_glob = os.path.join(host_list_dir, yyyy_mm_dd, base_glob)
-            for path in glob.iglob(full_glob):
-                return path
-    elif scheduler == 'slurm_stampede':
-        base_glob = 'hostlist.' + str(acct['id'])
-        for days in (0, -1, 1):
-            yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
-            full_glob = os.path.join(os.getenv('TACC_STATS_HOST_LIST_DIR'), yyyy_mm_dd, base_glob)
-            l = []
-            l.append(full_glob)
-            for path in iter(l):
-                return path
-    
-    return None
+#def get_host_list_path(acct, host_list_dir):
+#    """Return the path of the host list written during the prolog."""
+#    # Example: /share/sge6.2/default/tacc/hostfile_logs/2011/05/19/prolog_hostfile.1957000.IV32627
+#    start_date = datetime.date.fromtimestamp(acct['start_time'])
+#    base_glob = 'prolog_hostfile.' + acct['id'] + '.*'
+#    for days in (0, -1, 1):
+#        yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
+#        full_glob = os.path.join(host_list_dir, yyyy_mm_dd, base_glob)
+#        for path in glob.iglob(full_glob):
+#            return path
+#    return None
 
 
 def stats_file_discard_record(file):
@@ -186,26 +242,43 @@ def stats_file_discard_record(file):
             return
 
 
-class Host(object):
-    # __slots__ = ('job', 'name', 'times', 'marks', 'raw_stats')
+# ------------------------------------------------------------------
 
-    def __init__(self, job, name):
+(PENDING_FIRST_RECORD, ACTIVE, ACTIVE_IGNORE, LAST_RECORD, DONE ) = range(0,5)
+statenames = { PENDING_FIRST_RECORD: "PENDING_FIRST_RECORD", ACTIVE: "ACTIVE", ACTIVE_IGNORE: "ACTIVE_IGNORE", LAST_RECORD: "LAST_RECORD", DONE: "DONE" }
+
+class Host(object):
+    def __init__(self, job, name, raw_stats_dir, name_ext, genproc = False):
         self.job = job
         self.name = name
+        self.name_ext = name_ext
+        self.raw_stats_dir=raw_stats_dir
+        if genproc:
+            self.procdump = procdump.ProcDump()
+        else:
+            self.procdump = None
+
         self.times = []
-        self.marks = {}
         self.raw_stats = {}
+        self.marks = {}
+        self.rotatetimes = []
+
+        self.state = PENDING_FIRST_RECORD
+        self.timestamp = None
+        self.filename = None
+        self.fileline = None
+        self.tacc_version = "Unknown"
+
+        self.mismatch_schemas = {}
 
     def trace(self, fmt, *args):
-        self.job.trace('%s: ' + fmt, self.name, *args)
+        logging.debug( fmt % args )
 
     def error(self, fmt, *args):
         self.job.error('%s: ' + fmt, self.name, *args)
 
     def get_stats_paths(self):
-        # returns the list path_list that contains all the paths to files
-        # for the current node that exist within the time specified
-        raw_host_stats_dir = os.path.join(raw_stats_dir, self.name)
+        raw_host_stats_dir = os.path.join(self.raw_stats_dir, self.name+self.name_ext)
         job_start = self.job.start_time - RAW_STATS_TIME_PAD
         job_end = self.job.end_time + RAW_STATS_TIME_PAD
         path_list = []
@@ -214,28 +287,28 @@ class Host(object):
                 base, dot, ext = ent.partition(".")
                 if not base.isdigit():
                     continue
+                if ext != "gz":
+                    continue
+                # Support for filenames of the form %Y%m%d
+                if re.match('^[0-9]{4}[0-1][0-9][0-3][0-9]$', base):
+                    base = (datetime.datetime.strptime(base,"%Y%m%d") - datetime.datetime(1970,1,1)).total_seconds()
                 # Prune to files that might overlap with job.
-                # ent_start is looking for a timestamp, depending on how the files are saved in
-                # the archive/node directory, they may need to be changed.
-                if (scheduler == 'torque' or scheduler == 'slurm_rush'):
-                    # tacc_stats raw data files saved as archive/node/YYYYMMDD, these need to
-                    # be converted to a unix timestamp
-                    ent_start = long(datetime.datetime.strptime(base, '%Y%m%d').strftime("%s"))
-                else:
-                    ent_start = long(base)
-                ent_end = ent_start + RAW_STATS_TIME_MAX
-                if max(job_start, ent_start) <= min(job_end, ent_end):
+                ent_start = long(base)
+                ent_end = ent_start + 2*RAW_STATS_TIME_MAX
+                if ((ent_start <= job_start) and (job_start <= ent_end)) or ((ent_start <= job_end) and (job_end <= ent_end)) or (max(job_start, ent_start) <= min(job_end, ent_end)) :
                     full_path = os.path.join(raw_host_stats_dir, ent)
                     path_list.append((full_path, ent_start))
-                    self.trace("path `%s', start %d\n", full_path, ent_start)
-        except:
-            pass
+                    self.trace("path `%s', start %d", full_path, ent_start)
+        except Exception as exc:
+            logging.error("get_stats_paths job %s. %s", self.job.id, exc)
+
         path_list.sort(key=lambda tup: tup[1])
         return path_list
 
-    def read_stats_file_header(self, start_time, file):
+    def read_stats_file_header(self, fp):
         file_schemas = {}
-        for line in file:
+        for line in fp:
+            self.fileline += 1
             try:
                 c = line[0]
                 if c == SF_SCHEMA_CHAR:
@@ -244,132 +317,202 @@ class Host(object):
                     if schema:
                         file_schemas[type_name] = schema
                     else:
-                        self.error("file `%s', type `%s', schema mismatch desc `%s'\n",
-                                   file.name, type_name, schema_desc)
+                        self.mismatch_schemas[type_name] = 1
+                        self.error("file `%s', type `%s', schema mismatch desc `%s'",
+                                   fp.name, type_name, schema_desc)
                 elif c == SF_PROPERTY_CHAR:
+                    if line.startswith("$tacc_stats"):
+                        self.tacc_version = line.split(" ")[1].strip()
                     pass
                 elif c == SF_COMMENT_CHAR:
                     pass
                 else:
                     break
             except Exception as exc:
-                self.trace("file `%s', caught `%s' discarding line `%s'\n",
-                           file.name, exc, line)
+                self.error("file `%s', caught `%s' discarding line `%s'",
+                           fp.name, exc, line)
                 break
         return file_schemas
 
-    def parse_stats(self, rec_time, line, file_schemas, file):
-        type_name, dev_name, rest = line.split(None, 2)
-        schema = file_schemas.get(type_name)
-        if not schema:
-            self.error("file `%s', unknown type `%s', discarding line `%s'\n",
-                       file.name, type_name, line)
-            return
-        # TODO stats_dtype = numpy.uint64
-        # XXX count = ?
-        vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
-        if vals.shape[0] != len(schema):
-            self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'\n",
-                       file.name, type_name, len(schema), vals.shape[0], line)
-            return
-        type_stats = self.raw_stats.setdefault(type_name, {})
-        dev_stats = type_stats.setdefault(dev_name, [])
-        dev_stats.append((rec_time, vals))
 
-    def read_stats_file(self, start_time, file):
-        file_schemas = self.read_stats_file_header(start_time, file)
-        if not file_schemas:
-            self.trace("file `%s' bad header\n", file.name)
+    def read_stats_file(self, fp):
+
+        if self.state == DONE:
             return
-        # Scan file for records belonging to JOBID.
-        rec_time = start_time
-        for line in file:
+
+        self.filename = fp.name
+        self.fileline = 0
+
+        self.file_schemas = self.read_stats_file_header(fp)
+        if not self.file_schemas:
+            self.error("file `%s' bad header on line %s", self.filename, self.fileline)
+            return
+
+        try:
+            for line in fp:
+                self.fileline += 1
+                self.parse(line.strip())
+                if self.state == DONE:
+                    break
+        except Exception as e:
+            self.error("file `%s' exception %s on line %s", self.filename, str(e), self.fileline)
+
+
+    def parse(self, line):
+        if len(line) < 1:
+            return
+
+        ch = line[0]
+
+        if ch.isdigit():
+            self.processtimestamp(line)
+        elif ch.isalpha():
+            self.processdata(line)
+        elif ch == SF_SCHEMA_CHAR:
+            self.processschema(line)
+        elif ch == SF_COMMENT_CHAR:
+            pass
+        elif ch == SF_PROPERTY_CHAR:
+            self.processproperty(line)
+        elif ch == SF_MARK_CHAR:
             try:
-                c = line[0]
-                if c.isdigit():
-                    str_time, rec_jobid = line.split()
-                    rec_jobid = rec_jobid.split(',') #there can be multiple job id's
-                    rec_time = long(str_time)
-                    # check for a begin statement, in Rush the begin jobid is
-                    # not included with the time stamp
-                    pos=file.tell()
-                    begin = file.next().strip()
-                    if begin.startswith('% begin'):
-                        rec_jobid.append(begin[8:]) #add the begin jobid to the array
-                    # check if jobid exists
-                    if str(self.job.id) in rec_jobid:
-                        self.trace("file `%s' rec_time %d, rec_jobid `%s'\n",
-                                   file.name, rec_time, rec_jobid)
-                        self.times.append(rec_time)
-                        file.seek(pos) #seek back to last position to begin with %begin
-                        break
-            except Exception as exc:
-                self.trace("file `%s', caught `%s', discarding `%s'\n",
-                           file.name, str(exc), line)
-                stats_file_discard_record(file)
+                self.processmark(line)
+            except TypeError as e:
+                self.error("TypeError %s in %s line %s", str(e), self.filename, self.fileline)
         else:
-            # We got to the end of this file wthout finding any
-            # records belonging to JOBID.  Try next path.
-            self.trace("file `%s' has no records belonging to job\n", file.name)
+            logging.warning("Unregognised character \"%s\" in %s on line %s ",
+                            ch, self.filename, self.fileline)
+            pass
+
+    def setstate(self, newstate, reason = None):
+        self.trace("TRANS {} -> {} ({})".format( statenames[self.state], statenames[newstate], reason ) )
+        self.state = newstate
+
+    def processtimestamp(self,line):
+        recs = line.strip().split(" ")
+        try:
+            self.timestamp = float(recs[0])
+            jobs = recs[1].strip().split(",")
+        except IndexError as e:
+            self.error("syntax error timestamp in file '%s' line %s", self.filename, self.fileline)
             return
-        # OK, we found a record belonging to JOBID.
-        for line in file:
+
+        if self.state == PENDING_FIRST_RECORD:
+            if self.job.id in jobs:
+                self.setstate(ACTIVE, "job in timestamp list")
+            elif math.floor(self.timestamp) >= self.job.start_time:
+                self.setstate(ACTIVE, "timestamp in job window")
+        elif self.state == ACTIVE:
+            if math.floor(self.timestamp - 600) > self.job.end_time:
+                self.setstate(DONE, "timestamp out of job window")
+        elif self.state == ACTIVE_IGNORE:
+            self.setstate(ACTIVE)
+        elif self.state == LAST_RECORD:
+            self.setstate(DONE, "processed last record")
+
+        if self.state == ACTIVE:
+            self.times.append( self.timestamp )
+
+    def processdata(self,line):
+        if self.state == ACTIVE or self.state == LAST_RECORD:
+
             try:
-                c = line[0]
-                if c.isdigit():
-                    str_time, rec_jobid = line.split()
-                    rec_jobid = rec_jobid.split(',') #there can be multiple job id's
-                    rec_time = long(str_time)
-                    # need to look for end in rush because it might not be part
-                    # of the jobid with the timestamp
-                    pos=file.tell()
-                    end = file.next().strip()
-                    if end.startswith('% end'):
-                        rec_jobid.append(end[6:])
-                    file.seek(pos)
-                    if str(self.job.id) not in rec_jobid:
-                        return
-                    self.trace("file `%s' rec_time %d, rec_jobid `%s'\n",
-                               file.name, rec_time, rec_jobid)
-                    self.times.append(rec_time)
-                elif c.isalpha():
-                    self.parse_stats(rec_time, line, file_schemas, file)
-                elif c == SF_MARK_CHAR:
-                    if not line.startswith("% procdump"): #do not add procdump data to pickle
-                        mark = line[1:].strip()
-                        self.marks[mark] = True
-                elif c == SF_COMMENT_CHAR:
-                    pass
+                type_name, dev_name, rest = line.split(None, 2)
+            except ValueError as e:
+                self.error("syntax error on file '%s' line %s", self.filename, self.fileline)
+                return
+
+            schema = self.file_schemas.get(type_name)
+            if not schema:
+                if not type_name in self.mismatch_schemas:
+                    self.error("file `%s', unknown type `%s', discarding line `%s'",
+                        self.filename, type_name, self.fileline)
+                return
+
+            vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
+            if vals.shape[0] != len(schema):
+                self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'",
+                       self.filename, type_name, len(schema), vals.shape[0], self.fileline)
+                return
+
+            type_stats = self.raw_stats.setdefault(type_name, {})
+            dev_stats = type_stats.setdefault(dev_name, [])
+            dev_stats.append((self.timestamp, vals))
+
+    def processschema(self,line):
+        print "processschema"
+        pass
+
+    def processproperty(self,line):
+        print "processproperty"
+        pass
+
+    def processmark(self,line):
+        mark = line[1:].strip()
+        actions = mark.split()
+        if not actions:
+            self.error("syntax error processmark file `%s' line `%s'", self.filename, self.fileline)
+            return
+        if actions[0] == "end":
+            if actions[1] == self.job.id:
+                if self.state == ACTIVE:
+                    # This is the end for the sought after job
+                    self.setstate(LAST_RECORD, "seen end marker")
+                    self.marks['end'] = True
                 else:
-                    pass #...
-            except Exception as exc:
-                self.trace("file `%s', caught `%s', discarding `%s'\n",
-                           file.name, str(exc), line)
-                stats_file_discard_record(file)
+                    self.error("end marker in {} line {} before job started".format(self.filename, self.fileline) )
+                    # Stay in non-active
+            else:
+                # this is an end marker for another job.
+                if self.state == ACTIVE:
+                    self.times = self.times[:-1]
+                    self.setstate(ACTIVE_IGNORE, "end for another job")
+
+        if actions[0] == "begin":
+            self.trace( "Seen begin at %s for \"%s\"", self.timestamp, actions[1] )
+            if actions[1] == self.job.id:
+                if self.state == ACTIVE:
+                    # Need to discard any earlier timerecords since the begin resets the counters.
+                    if len(self.times) > 1:
+                        self.trace("BEGIN_IN_MIDDLE {} {} line {} @ {} discard {} previous".format(self.name, self.filename, self.fileline, self.timestamp, len(self.times)-1 ) )
+                        self.raw_stats = {}
+                        self.times = [ self.timestamp ]
+                        self.rotatetimes = []
+                else:
+                    self.setstate(ACTIVE, "seen begin marker")
+                    self.marks['begin'] = True
+            else:
+                # this is a begin marker for another job.
+                if self.state == ACTIVE:
+                    self.times = self.times[:-1]
+                    self.setstate(ACTIVE_IGNORE, "begin for another job")
+
+        if actions[0] == "rotate":
+            if self.state == ACTIVE or self.state == ACTIVE_IGNORE:
+                self.rotatetimes.append(self.timestamp)
+
+        if actions[0] == "procdump":
+            # procdump information is valid even when in active ignore
+            if (self.state == ACTIVE or self.state == ACTIVE_IGNORE) and self.procdump != None:
+                self.procdump.parse(line)
+        pass
 
     def gather_stats(self):
         path_list = self.get_stats_paths()
         if len(path_list) == 0:
-            self.error("no stats files overlapping job\n")
+            self.error("no stats files overlapping job")
             return False
+
         # read_stats_file() and parse_stats() append stats records
         # into lists of tuples in self.raw_stats.  The lists will be
         # converted into numpy arrays below.
         for path, start_time in path_list:
-            if path.endswith('.gz'):
-                with gzip.open(path) as file: # Gzip.
-                    self.read_stats_file(start_time, file)
-            else:
-                with open(path) as file:
-                    self.read_stats_file(start_time, file)
-        # begin_mark = 'begin %s' % self.job.id # No '%'.
-        # if not begin_mark in self.marks:
-        #     self.error("no begin mark found\n")
-        #     return False
-        # end_mark = 'end %s' % self.job.id # No '%'.
-        # if not end_mark in self.marks:
-        #     self.error("no end mark found\n")
-        #     return False
+            try:
+                with gzip.open(path) as file:
+                    self.read_stats_file(file)
+            except IOError as ioe:
+                self.error("read error for file %s", path)
+
         return self.raw_stats
 
     def get_stats(self, type_name, dev_name, key_name):
@@ -383,161 +526,82 @@ class Host(object):
 
 class Job(object):
     # TODO errors/comments
-    __slots__ = ('id', 'start_time', 'end_time', 'acct', 'schemas', 'hosts', 'times')
+    __slots__ = ('id', 'start_time', 'end_time', 'acct', 'schemas', 'hosts',
+    'times','stats_home', 'host_list_dir', 'batch_acct', 'edit_flags', 'errors', 'overflows')
 
-    def __init__(self, acct):
+    def __init__(self, acct, stats_home, host_list_dir, batch_acct):
         self.id = acct['id']
         self.start_time = acct['start_time']
         self.end_time = acct['end_time']
         self.acct = acct
         self.schemas = {}
-        self.hosts = {}
+        self.hosts = OrderedDict()
         self.times = []
+        self.stats_home=stats_home
+        self.host_list_dir=host_list_dir
+        self.batch_acct=batch_acct
+        self.edit_flags = []
+        self.errors = set()
+        self.overflows = dict()
 
     def trace(self, fmt, *args):
         trace('%s: ' + fmt, self.id, *args)
 
     def error(self, fmt, *args):
-        error('%s: ' + fmt, self.id, *args)
+        self.errors.add( fmt % args )
+        error('%s: ' + fmt, str(self.id), *args)
 
     def get_schema(self, type_name, desc=None):
         schema = self.schemas.get(type_name)
         if schema:
-            if desc and schema.desc != desc:
+            if desc and schema.desc != schema_fixup(type_name,desc):
                 # ...
                 return None
         elif desc:
+            desc = schema_fixup(type_name, desc)
             schema = self.schemas[type_name] = Schema(desc)
         return schema
 
     def gather_stats(self):
-
-        if scheduler == 'sge':
-
-            path = get_host_list_path(self.acct)
-            if not path:
-                self.error("no host list found\n")
-                return False
-            try:
-                with open(path) as file:
-                    host_list = [host for line in file for host in line.split()]
-            except IOError as (err, s):
-                self.error("cannot open host list `%s': %s\n", path, s)
-                return False
-            if len(host_list) == 0:
-                self.error("empty host list\n")
-                return False
-            for host_name in host_list:
-                # TODO Keep bad_hosts.
-                host = Host(self, host_name)
-                if host.gather_stats():
-                    self.hosts[host_name] = host
-            if not self.hosts:
-                self.error("no good hosts\n")
-                return False
-            return True
-
-        elif scheduler == 'torque':
-
-            # get list of hostnames from acct dict
-            host_list_tmp = self.acct['exec_host'].split('+')
-            host_list = []
-            for host_name in host_list_tmp:
-                # remove cpu number from hostname
-                host_list.append( host_name[:host_name.find('/')] )
-            # create a set (unique list of no duplicate hostnames)
-            host_list = list(set(host_list))
-
-            # go through each host
-            for host_name in host_list:
-                host = Host(self, host_name)
-                if host.gather_stats():
-                    self.hosts[host_name] = host
-            if not self.hosts:
-                self.error("no good hosts\n")
-                return False
-            return True
-            
-        elif scheduler == 'slurm_stampede':
-            
-            path = get_host_list_path(self.acct)
-            if not path:
-                self.error("no host list found\n")
-                return False
-            try:
-                with open(path) as file:
-                    host_list = [host for line in file for host in line.split()]
-            except IOError as (err, s):
-                self.error("cannot open host list `%s': %s\n", path, s)
-                return False
-            if len(host_list) == 0:
-                self.error("empty host list\n")
-                return False
-            for host_name in host_list:
-                # TODO Keep bad_hosts.
-                host_name = host_name + '.stampede.tacc.utexas.edu'
-                host = Host(self, host_name)
-                if host.gather_stats():
-                    self.hosts[host_name] = host
-            if not self.hosts:
-                self.error("no good hosts\n")
-                return False
-            return True
-            
-        elif scheduler == 'slurm_rush':
-            
-            open_brace_flag = False
-            close_brace_flag = False
-            host_list = []
-            tmp_host = ""
-            # get a list of all the nodes and store them in host_host
-            for c in self.acct['node_list']:
-                if c == '[':
-                    open_brace_flag = True
-                elif c == ']':
-                    close_brace_flag = True
-                if ( c == ',' and not close_brace_flag and not open_brace_flag ) or (c == ',' and close_brace_flag):
-                    host_list.append(tmp_host)
-                    tmp_host = ""
-                    close_brace_flag = False
-                    open_brace_flag = False
-                else:
-                    tmp_host += c
-            if tmp_host:
-                host_list.append(tmp_host)
-            # parse through host_list and expand the hostnames
-            host_list_expanded = []
-            for h in host_list:
-                if '[' in h:
-                    node_head = h.split('[')[0]
-                    node_tail = h.split('[')[1][:-1].split(',')
-                    for n in node_tail:
-                        if '-' in n:
-                            num = n.split('-')
-                            for x in range(int(num[0]), int(num[1])+1):
-                                host_list_expanded.append(node_head + str("%02d" % x))
-                        else:
-                            host_list_expanded.append(node_head + n)
-                else:
-                    host_list_expanded.append(h)
-            self.acct['hostname'] = host_list_expanded[0] # add hostname
-            for host_name in host_list_expanded:
-                host = Host(self, host_name)
-                if host.gather_stats():
-                    self.hosts[host_name] = host
-            if not self.hosts:
-                self.error("no good hosts\n")
-                return False
-            return True
-        
+        if "host_list" in self.acct:
+            host_list = self.acct['host_list']
+            if host_list == ["None assigned"]:
+                host_list = []
         else:
+            path = self.batch_acct.get_host_list_path(self.acct, self.host_list_dir)
+            if not path:
+                if self.end_time - self.start_time > 0:
+                    # Only care about missing hosts if the job actually ran!
+                    self.error("no host list found in dir " + self.host_list_dir)
+                return False
+            try:
+                with open(path) as file:
+                    host_list = [host for line in file for host in line.split() if line != "None assigned"]
+            except IOError as (err, str):
+                self.error("cannot open host list `%s': %s", path, str)
+                return False
+        if len(host_list) == 0 and self.end_time - self.start_time > 0:
+            self.error("empty host list")
             return False
+        for hidx, host_name in enumerate(host_list):
+            # TODO Keep bad_hosts.
+            try: host_name = host_name.split('.')[0]
+            except: pass
+            
+            host = Host(self, host_name, self.stats_home + '/archive',self.batch_acct.name_ext, hidx == 0 )
+            if host.gather_stats():
+                self.hosts[host_name] = host
+        if not self.hosts:
+            self.error("no good hosts")
+            return False
+        return True
 
     def munge_times(self):
         times_lis = []
         for host in self.hosts.itervalues():
             times_lis.append(host.times)
             del host.times
+
         times_lis.sort(key=lambda lis: len(lis))
         # Choose times to have median length.
         times = list(times_lis[len(times_lis) / 2])
@@ -545,7 +609,7 @@ class Job(object):
             return False
         times.sort()
         # Ensure that times is sane and monotonically increasing.
-        t_min = self.start_time
+        t_min = 0
         for i in range(0, len(times)): 
             t = max(times[i], t_min)
             times[i] = t
@@ -554,7 +618,9 @@ class Job(object):
                    len(times_lis[0]), len(times), len(times_lis[-1]))
         self.trace("job start to first collect %d\n", times[0] - self.start_time)
         self.trace("last collect to job end %d\n", self.end_time - times[-1])
-        self.times = numpy.array(times, dtype=numpy.uint64)
+        self.times = numpy.array(times, dtype=numpy.float64)
+        if len(times_lis[0]) != len(times_lis[-1]):
+            self.errors.add( "Number of records differs between hosts (min {}, max {})".format(len(times_lis[0]), len(times_lis[-1]) ) )
         return True
     
     def process_dev_stats(self, host, type_name, schema, dev_name, raw):
@@ -569,17 +635,29 @@ class Job(object):
         m = len(self.times)
         n = len(schema)
         A = numpy.zeros((m, n), dtype=numpy.uint64) # Output.
-        # First and last of A are first and last from raw.
-        A[0] = raw[0][1]
-        A[m - 1] = raw[-1][1]
+
         k = 0
         # len(raw) may not be equal to m, so we fill out A by choosing values
         # with the closest timestamps.
-        for i in range(1, m - 1):
+        # TODO sort out host times
+        host.times = []
+        rmsjitter = 0.0
+        logrotates = []
+        for i in xrange(0, m):
             t = self.times[i]
             while k + 1 < len(raw) and abs(raw[k + 1][0] - t) <= abs(raw[k][0] - t):
                 k += 1
+            rmsjitter += (raw[k][0] - t)**2
             A[i] = raw[k][1]
+            if raw[k][0] in host.rotatetimes:
+                logrotates.append(i)
+            host.times.append(raw[k][0])
+
+        if m > 0:
+            rmsjitter = math.sqrt(rmsjitter) / m
+            if rmsjitter > 60:
+                self.errors.add("high rmsjitter {} for host {}".format(rmsjitter, host.name))
+
         # OK, we fit the raw values into A.  Now fixup rollover and
         # convert units.
         for e in schema.itervalues():
@@ -589,29 +667,71 @@ class Job(object):
                 # Rebase, check for rollover.
                 for i in range(0, m):
                     v = A[i, j]
-                    if v < p:
+
+                    if i in logrotates and host.tacc_version == "2.2.1" and type_name.startswith('intel_') and i > 0:
+                        r = numpy.uint64(v) - A[i-1,j] 
+                        if i > 1:
+                            linear_interp = numpy.uint64(numpy.uint64(A[i-1, j] - A[i-2,j]) * numpy.uint64(host.times[i] - host.times[i-1]) ) / numpy.uint64(host.times[i-1] - host.times[i-2])
+                            r -= linear_interp
+                        fudged = True
+                    elif v < p:
+                        fudged = False
                         # Looks like rollover.
-                        if e.width:
+                        if e.width and e.width < 64:
                             trace("time %d, counter `%s', rollover prev %d, curr %d\n",
                                   self.times[i], e.key, p, v)
                             r -= numpy.uint64(1L << e.width)
                         elif v == 0:
+                            # Spurious reset
                             # This happens with the IB counters.
                             # Ignore this value, use previous instead.
                             # TODO Interpolate or something.
                             trace("time %d, counter `%s', suspicious zero, prev %d\n",
                                   self.times[i], e.key, p)
                             v = p # Ugh.
-                        else:
-                            error("time %d, counter `%s', 64-bit rollover prev %d, curr %d\n",
-                                  self.times[i], e.key, p, v)
-                            # TODO Discard or something.
+                        elif (type_name == 'ib_ext' or type_name == 'ib_sw') or (type_name == 'cpu' and e.key == 'iowait'):
+                            # We will assume a spurious reset, 
+                            # and the reset happened at the start of the counting period.
+                            # This happens with IB ext counters.
+                            #   A[i,j] = v + A[i-1,j] 
+                            # and
+                            #   A[i,j] = v - r
+                            # Therefore
+                            #   A[i-1,j] = -r 
+                            # or
+                            #          r = - A[i-1,j]
+                            r = numpy.uint64(0) - A[i-1,j] 
+                            if KEEP_EDITS:
+                                self.edit_flags.append("(time %d, host `%s', type `%s', dev `%s', key `%s')" %
+                                                   (self.times[i],host.name,type_name,dev_name,e.key))
+                            fudged = True
+                        elif type_name == 'net' and (dev_name == 'mic0' or dev_name == 'mic1') and i == (len(self.times)-1):
+                            # mic counters are reset at the end of a job ignore the last datapoint
+                            v = p
+                            fudged = True
+
+                        if type_name not in ['ib', 'ib_ext'] and (fudged == False):
+                            width = e.width if e.width else 64
+                            if ( v - p ) % (2**width) > 2**(width-1):
+                                # This counter rolled more than half of its range
+                                self.logoverflow(host.name, type_name, dev_name, e.key)
+
                     A[i, j] = v - r
                     p = v
             if e.mult:
                 for i in range(0, m):
                     A[i, j] *= e.mult
         return A
+
+    def logoverflow(self, host_name, type_name, dev_name, key_name):
+        if type_name not in self.overflows:
+            self.overflows[type_name] = dict()
+        if dev_name not in self.overflows[type_name]:
+            self.overflows[type_name][dev_name] = dict()
+        if key_name not in self.overflows[type_name][dev_name]:
+            self.overflows[type_name][dev_name][key_name] = set()
+
+        self.overflows[type_name][dev_name][key_name].add(host_name)
 
     def process_stats(self):
         for host in self.hosts.itervalues():
@@ -624,6 +744,7 @@ class Job(object):
                                                              dev_name, raw_dev_stats)
             del host.raw_stats
         amd64_pmc.process_job(self)
+        intel_process.process_job(self)
         # Clear mult, width from schemas. XXX
         for schema in self.schemas.itervalues():
             for e in schema.itervalues():
@@ -672,12 +793,12 @@ class Job(object):
         return host_stats
 
 
-def from_acct(acct):
-    """from_acct(acct)
-    Return a Job object constructed from the SGE accounting data acct, running
-    all required processing.
+def from_acct(acct, stats_home, host_list_dir, batch_acct):
+    """from_acct(acct, stats_home)
+    Return a Job object constructed from the appropriate accounting data acct using
+    stats_home as the base directory, running all required processing.
     """
-    job = Job(acct)
+    job = Job(acct, stats_home, host_list_dir, batch_acct)
     job.gather_stats() and job.munge_times() and job.process_stats()
     return job
 

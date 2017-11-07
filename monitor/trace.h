@@ -9,8 +9,6 @@
 static inline void TRACE(const char *fmt, ...) { }
 #endif
 
-#define DEBUG 1
-
 #ifdef DEBUG
 #define ERROR(fmt,arg...) \
   fprintf(stderr, "%s:%d: "fmt, __func__, __LINE__, ##arg)

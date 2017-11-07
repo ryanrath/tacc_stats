@@ -1,3 +1,4 @@
+*.pdf
 *.png
 jobs
 27*
@@ -7,3 +8,6 @@ jobs
 *.gz
 *.csv
 TAGS
+nightly_jobs
+nightlies
+

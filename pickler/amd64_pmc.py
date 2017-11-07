@@ -58,10 +58,7 @@ def core_to_sock(c):
     return c / (nr_cores / nr_socks)
 
 def process_host(host, times):
-    if 'amd64_pmc' in host.stats:
-        pmc_stats = host.stats['amd64_pmc']
-    else:
-        return
+    pmc_stats = host.stats['amd64_pmc']
     core_stats = dict((str(i), numpy.zeros((len(times), nr_core_ctrs), numpy.uint64)) \
                       for i in range(0, nr_cores))
     sock_stats = dict((str(i), numpy.zeros((len(times), nr_sock_ctrs), numpy.uint64)) \
@@ -100,8 +97,14 @@ def process_job(job):
     if pmc_schema.desc != pmc_schema_desc:
         # XXX
         return
+
+
     core_schema = job.get_schema('amd64_core', core_schema_desc)
     sock_schema = job.get_schema('amd64_sock', sock_schema_desc)
     for host in job.hosts.itervalues():
+        if 'amd64_pmc' not in host.stats: 
+            del job.schemas['amd64_pmc']
+            return
         process_host(host, job.times)
+
     del job.schemas['amd64_pmc']

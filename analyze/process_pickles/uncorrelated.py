@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+import analyze_conf
 import sys
-sys.path.append('../../monitor')
 import datetime, glob, job_stats, os, subprocess, time
 import matplotlib
 if not 'matplotlib.pyplot' in sys.modules:
-  matplotlib.use('Agg')
+  matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 import numpy
 import scipy, scipy.stats
@@ -23,8 +23,7 @@ def pearson(ts):
 
   return(min(p))
 
-def plot_correlation(ts,r,full):
-  print '---------------------'
+def plot_correlation(ts,r,full,output_dir='.'):
   tmid=(ts.t[:-1]+ts.t[1:])/2.0
   fig, ax=plt.subplots(2,2,figsize=(10, 10), dpi=80)
   ax[0][0].hold=True
@@ -55,14 +54,27 @@ def plot_correlation(ts,r,full):
   plt.subplots_adjust(hspace=.25)
   title=ts.title + ', R=%(R)-8.3g' % { 'R' : r}
   plt.suptitle(title)
-  ax[0][0].set_xlim(left=0.,right=1.1*mx)
-  ax[0][0].set_ylim(bottom=0.,top=1.1*my)
-  ax[1][0].set_xlim(left=0.,right=1.1*mx)
-  ax[1][0].set_ylim(bottom=tmid[-1]*1.05/3600.,top=0.)
-  ax[0][1].set_ylim(bottom=0.,top=1.1*my)
-  fname1='graph_'+ts.j.id+'_'+ts.k1[0]+'_'+ts.k2[0]+ \
-         '_vs_'+ts.k1[1]+'_'+ts.k2[1]+full
-  fig.savefig(fname1)
+
+  xmin,xmax=tspl_utils.expand_range(0.,mx,.1)
+  ymin,ymax=tspl_utils.expand_range(0.,my,.1)
+  tmin,tmax=tspl_utils.expand_range(0.,tmid[-1]/3600,.1)
+  ax[0][0].set_xlim(left=xmin,right=xmax)
+  ax[0][0].set_ylim(bottom=ymin,top=ymax)
+  ax[1][0].set_xlim(left=xmin,right=xmax)
+  ax[1][0].set_ylim(bottom=tmax,top=tmin)
+  ax[0][1].set_ylim(bottom=ymin,top=ymax)
+  ax[0][1].set_xlim(left=tmin,right=tmax)
+  try:
+    fname='_'.join(['graph',ts.j.id,ts.j.acct['owner'],
+                    ts.k1[0],ts.k2[0],'vs',
+                    ts.k1[1],ts.k2[1]])+full
+  except:
+    fname='_'.join(['graph',ts.j.id,
+                    ts.k1[0],ts.k2[0],'vs',
+                    ts.k1[1],ts.k2[1]])+full
+
+
+  fig.savefig(output_dir+'/'+fname)
   plt.close()
 
 

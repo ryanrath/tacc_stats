@@ -5,9 +5,8 @@ Release: 1
 License: GPL
 Vendor: TACC/Ranger
 Group: System Environment/Base
-Packager: CCR
-Source: %{name}.tar.gz
-#Source: %{name}-%{Version}.tar.gz
+Packager: TACC - jhammond@tacc.utexas.edu
+Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 %define _bindir /opt/%{name}
 %define crontab_file /etc/cron.d/%{name}
@@ -15,28 +14,22 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 %define archive_dir /scratch/projects/%{name}/archive
 
 %description
-
 This package provides the tacc_stats command, along with a cron file
 to trigger collection and archiving.
 
 %prep
-
-%setup -q -n tacc_stats-master/monitor
+%setup -q
 
 %build
-
-make clean
-make config=config NCPUS=32 name=%{name} version=%{version} -j 4
+make name=%{name} version=%{version} %{?config: config=%{config}} stats_dir=%{stats_dir}
 
 %install
-
 rm -rf %{buildroot}
 install -m 0755 -d %{buildroot}/%{_bindir}
 install -m 6755 %{name} %{buildroot}/%{_bindir}/%{name}
 install -m 0755 archive.sh %{buildroot}/%{_bindir}/%{name}_archive
 
 %post
-
 (
   archive_min=$(( ((RANDOM * 60) / 32768) %% 60 ))
   archive_hour=$(( (RANDOM %% 2) + 2 ))
@@ -52,17 +45,14 @@ install -m 0755 archive.sh %{buildroot}/%{_bindir}/%{name}_archive
 %{_bindir}/%{name} rotate
 
 %preun
-
 if [ $1 == 0 ]; then
   rm %{crontab_file} || :
 fi
 
 %clean
-
 rm -rf %{buildroot}
 
 %files
-
 %defattr(-,root,root,-)
 %dir %{_bindir}/
 %attr(6755,root,root) %{_bindir}/%{name}

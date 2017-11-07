@@ -3,9 +3,6 @@ import csv, os, subprocess
 # Fields in the sge accounting file.
 # From /opt/sge6.2/man/man5/accounting.5
 
-stats_home = os.getenv('TACC_STATS_HOME', '/scratch/projects/tacc_stats')
-acct_path = os.getenv('TACC_STATS_ACCT', os.path.join(stats_home, 'accounting'))
-
 fields = (
     ('queue',           str, 'Name of the cluster queue in which the job has run.'), # sge 'qname'
     ('hostname',        str, 'Name of the execution host.'),
@@ -57,12 +54,14 @@ fields = (
 field_names = [tup[0] for tup in fields]
 
 
-def reader(file, start_time=0, end_time=9223372036854775807L):
-    """reader(file, start_time=0, end_time=9223372036854775807L)
+def reader(file, start_time=0, end_time=9223372036854775807L, seek=0):
+    """reader(file, start_time=0, end_time=9223372036854775807L, seek=0)
     Return an iterator for all jobs that finished between start_time and end_time.
     """
     if type(file) == str:
         file = open(file)
+    if seek:
+        file.seek(seek, os.SEEK_SET)
     for d in csv.DictReader(file, delimiter=':', fieldnames=field_names):
         try:
             for n, t, x in fields:

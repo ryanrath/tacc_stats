@@ -1,55 +1,92 @@
-import csv, os, subprocess, datetime, glob
+import csv, os, datetime, glob, re
+import codecs
+from torque_acct import TorqueAcct
+from parsers import isodate_pacific
 
 def factory(kind,acct_file,host_name_ext=''):
   if kind == 'SGE':
     return SGEAcct(acct_file,host_name_ext)
   elif kind == 'SLURM':
     return SLURMAcct(acct_file,host_name_ext)
+  elif kind == 'SLURMNative':
+    return SLURMNativeAcct(acct_file,host_name_ext)
+  elif kind == 'SLURMNative2':
+    return SLURMNative2Acct(acct_file,host_name_ext)
+  elif kind == 'XDcDB':
+    return XDcDBAcct(acct_file,host_name_ext)
+  elif kind == 'TORQUE':
+    return TorqueAcct(acct_file, host_name_ext)
+
+def special_char_stripper(fp):
+   for line in fp:
+      yield line.replace('\r', '').encode('utf-8')
 
 class BatchAcct(object):
 
-  def __init__(self,batch_kind,acct_file,host_name_ext):
+  def __init__(self,batch_kind,acct_file,host_name_ext,delimiter=":"):
     self.batch_kind=batch_kind
     self.acct_file=acct_file
     self.field_names = [tup[0] for tup in self.fields]
-    self.name_ext = '.'+host_name_ext
+    if len(host_name_ext) > 0:
+        self.name_ext = '.'+host_name_ext
+    else:
+        self.name_ext = ""
+    self.delimiter = delimiter 
+
+  def fixuprecord(self, d):
+    pass
 
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
     """reader(start_time=0, end_time=9223372036854775807L, seek=0)
     Return an iterator for all jobs that finished between start_time and end_time.
     """
-    file = open(self.acct_file)
-    if seek:
-      file.seek(seek, os.SEEK_SET)
+    datere = re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})\.[a-z]+')
 
-    for d in csv.DictReader(file, delimiter=':', fieldnames=self.field_names):
-      try:
-        for n, t, x in self.fields:
-          d[n] = t(d[n])
-      except:
-        pass
+    filelist = []
+    if os.path.isdir(self.acct_file):
+        for dir_name, subdir_list, file_list in os.walk(self.acct_file):
+            for fname in file_list:
+                mtch = datere.match(fname)
+                if mtch:
+                    # date stamped filename
+                    filets = (datetime.datetime(year=int(mtch.group(1)), month=int(mtch.group(2)), day=int(mtch.group(3))) - datetime.datetime(1970, 1, 1)).total_seconds() + 24*3600
+                    if filets < start_time:
+                        continue
 
-      ## Clean up when colons exist in job name
-      if None in d:
-        #print 'before',d
-        num_cols = len(d[None])
-        for cols in range(num_cols):
-          d['name'] = d['name']+':'+d['status']        
-          d['status'] = str(d['nodes'])
-          d['nodes'] = d['cores']
-          d['cores'] = d[None][0]
-          del d[None][0]
-        d['nodes'] = int(d['nodes'])
-        d['cores'] = int(d['cores'])
-        del d[None]
-        #print 'after',d
-      # Accounting records with pe_taskid != NONE are generated for
-      # sub_tasks of a tightly integrated job and should be ignored.
-      if start_time <= d['end_time'] and d['end_time'] < end_time:
-        if self.batch_kind=='SGE' and d['pe_taskid'] == 'NONE':
-          yield d
-        elif self.batch_kind=='SLURM':
-          yield d
+                filelist.append( os.path.join(self.acct_file,dir_name,fname) )
+    else:
+        filelist = [ self.acct_file ]
+
+    for fname in filelist:
+        file = codecs.open(fname, "r", "utf-8", errors="replace")
+        if seek:
+            file.seek(seek, os.SEEK_SET)
+
+        for d in csv.DictReader(special_char_stripper(file), delimiter=self.delimiter, fieldnames=self.field_names):
+          try:
+            for n, t, x in self.fields:
+              d[n] = t(d[n])
+          except Exception as e:
+            #print e
+            pass
+
+          ## Clean up when colons exist in job name
+          if None in d:
+            self.fixuprecord(d)
+
+          if d['end_time'] == 0:
+              # Skip jobs that have no defined end time (occurs when certain schedulers do not allocate resources for job)
+              continue
+
+          # Accounting records with pe_taskid != NONE are generated for
+          # sub_tasks of a tightly integrated job and should be ignored.
+          if start_time <= d['end_time'] and d['end_time'] < end_time:
+            if self.batch_kind=='SGE' and d['pe_taskid'] == 'NONE':
+              yield d
+            elif self.batch_kind=='SLURM':
+              yield d
+
+        file.close()
 
 
   def from_id_with_file_1(self, id, seek=0):
@@ -155,11 +192,185 @@ class SLURMAcct(BatchAcct):
   def get_host_list_path(self,acct,host_list_dir):
     """Return the path of the host list written during the prolog."""
     start_date = datetime.date.fromtimestamp(acct['start_time'])
-    base_glob = 'hostlist.' + acct['id']
-    for days in (0, -2, 2):
+    base_glob = 'hostlist.' + str(acct['id'])
+    for days in (0, -1, 1):
       yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
       full_glob = os.path.join(host_list_dir, yyyy_mm_dd, base_glob)
-      print 'host list paths', full_glob
       for path in glob.iglob(full_glob):
         return path
     return None
+
+  def fixuprecord(self, d):
+    """ Try to handle case where the name field contains the delimiter character """
+    num_cols = len(d[None])
+    for cols in range(num_cols):
+      d['name'] = d['name']+':'+d['status']        
+      d['status'] = str(d['nodes'])
+      d['nodes'] = d['cores']
+      d['cores'] = d[None][0]
+      del d[None][0]
+    d['nodes'] = int(d['nodes'])
+    d['cores'] = int(d['cores'])
+    del d[None]
+
+class SLURMNativeAcct(BatchAcct):
+  """ Process accounting data produced by the sacct command with the following """
+  """ flags. """
+  """ SLURM_TIME_FORMAT=%s """
+  """ sacct --allusers --parsable2 --noheader --allocations --allclusters      """
+  """     --format jobid,cluster,partition,account,group,gid,user,uid,submit,eligible,start,end,exitcode,State,nnodes,ncpus,reqcpus,nodelist,jobname,timelimit """
+  """     --state CA,CD,F,NF,TO """
+
+  def __init__(self,acct_file,host_name_ext):
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('cluster',                     str, 'Job cluster'),
+      ('partition',                   str, 'Job partition'),
+      ('account',                     str, 'Job account'),
+      ('group',                       str, 'Group name of the job owner'),
+      ('gid',                         int, 'GID of the job owner'),
+      ('user',                        str, 'User that is running the job'),
+      ('uid',                         int, 'UID of the job owner'),
+      ('submit',                      int, 'Time the job was submitted'),
+      ('eligible',                    int, 'Time job was eligible to run (unix time stamp)'),
+      ('start_time',                  int, 'Time job started to run (unix time stamp)'),
+      ('end_time',                    int, 'Time job ended (unix time stamp)'),
+      ('exit_code',                   str, 'Exit code of job'),
+      ('exit_status',                 str, 'Exit status of the job'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('ncpus',                       int, 'Number of cpus'),
+      ('reqcpus',                     int, 'Number of cores requested'),
+      ('node_list',                   str, 'Nodes used in job'),
+      ('jobname',                     str, 'Job name'),
+      ('timelimit',                   str, 'Assigned time limit')
+      )
+
+    BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
+
+  def get_host_list_path(self,acct,host_list_dir):
+    return None
+
+  def fixuprecord(self, d):
+    """ Try to handle case where the name field contains the delimiter character """
+    num_cols = len(d[None])
+    for cols in range(num_cols):
+      d['jobname'] = d['jobname']+'|'+d['timelimit']        
+      d['timelimit'] = d[None][0]
+      del d[None][0]
+    del d[None]
+
+  def get_host_list(self, nodelist):
+    
+    open_brace_flag = False
+    close_brace_flag = False
+    host_list = []
+    tmp_host = ""
+    # get a list of all the nodes and store them in host_host
+    for c in nodelist:
+        if c == '[':
+            open_brace_flag = True
+        elif c == ']':
+            close_brace_flag = True
+        if ( c == ',' and not close_brace_flag and not open_brace_flag ) or (c == ',' and close_brace_flag):
+            host_list.append(tmp_host)
+            tmp_host = ""
+            close_brace_flag = False
+            open_brace_flag = False
+        else:
+            tmp_host += c
+    if tmp_host:
+        host_list.append(tmp_host)
+
+    # parse through host_list and expand the hostnames
+    host_list_expanded = []
+    for h in host_list:
+        if '[' in h:
+            node_head = h.split('[')[0]
+            node_tail = h.split('[')[1][:-1].split(',')
+            for n in node_tail:
+                if '-' in n:
+                    num = n.split('-')
+                    for x in range(int(num[0]), int(num[1])+1):
+                        host_list_expanded.append(node_head + str("%02d" % x))
+                else:
+                    host_list_expanded.append(node_head + n)
+        else:
+            host_list_expanded.append(h)
+
+    return host_list_expanded
+
+  def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
+      for a in super(SLURMNativeAcct,self).reader(start_time, end_time, seek):
+          a['host_list'] = self.get_host_list(a['node_list'])
+          a['hostname'] = a['host_list'][0]
+          yield a
+
+class SLURMNative2Acct(SLURMNativeAcct):
+  """ Process accounting data produced by the sacct command used by tacc_stats """
+
+  def __init__(self,acct_file,host_name_ext):
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('uid',                         str, 'User that is running the job'),
+      ('project',                     str, 'Job account'),
+      ('start_time',                  isodate_pacific, 'Time job started to run'),
+      ('end_time',                    isodate_pacific, 'Time job ended'),
+      ('queue_time',                  isodate_pacific, 'Time the job was submitted'),
+      ('queue',                       str, 'Job partition'),
+      ('timelimit',                   str, 'Assigned time limit'),
+      ('name',                        str, 'Job name'),
+      ('status',                      str, 'Exit status of the job'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('cores',                       int, 'Number of cores requested'),
+      ('node_list',                   str, 'Nodes used in job'),
+      )
+
+    BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
+
+  def fixuprecord(self, d):
+      pass
+
+class XDcDBAcct(BatchAcct):
+  """ Process accounting data produced by grabbing it from the modw.jobfact 
+      table (which in turn comes from the XDcDB).
+  """
+
+  def __init__(self,acct_file,host_name_ext):
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('partition',                   str, 'Job partition'),
+      ('account',                     str, 'Job account'),
+      ('user',                        str, 'User that is running the job'),
+      ('submit',                      int, 'Time the job was submitted'),
+      ('start_time',                  int, 'Time job started to run (unix time stamp)'),
+      ('end_time',                    int, 'Time job ended (unix time stamp)'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('ncpus',                       int, 'Number of cpus'),
+      ('node_list',                   str, 'Nodes used in job'),
+      ('jobname',                     str, 'Job name')
+      )
+
+    BatchAcct.__init__(self,'XDcDB',acct_file,host_name_ext,"|")
+
+  def get_host_list_path(self,acct,host_list_dir):
+    """Return the path of the host list written during the prolog."""
+    start_date = datetime.date.fromtimestamp(acct['start_time'])
+    base_glob = 'hostlist.' + str(acct['id'])
+    for days in (0, -1, 1):
+      yyyy_mm_dd = (start_date + datetime.timedelta(days)).strftime("%Y/%m/%d")
+      full_glob = os.path.join(host_list_dir, yyyy_mm_dd, base_glob)
+      for path in glob.iglob(full_glob):
+        return path
+    return None
+
+  def get_host_list(self, nodelist):
+    return nodelist.split(",")
+
+  def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
+      for a in super(XDcDBAcct,self).reader(start_time, end_time, seek):
+          a['host_list'] = self.get_host_list(a['node_list'])
+          a['hostname'] = a['host_list'][0]
+          yield a

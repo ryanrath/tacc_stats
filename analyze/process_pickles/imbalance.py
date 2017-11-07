@@ -1,23 +1,29 @@
 #!/usr/bin/env python
-
+import analyze_conf
 import sys
-sys.path.append('../../monitor')
 import datetime, glob, job_stats, os, subprocess, time
 import operator
 import matplotlib
+# Set the matplotlib output mode from config if it exists
 if not 'matplotlib.pyplot' in sys.modules:
-  matplotlib.use('Agg')
+  try:
+    matplotlib.use(analyze_conf.matplotlib_output_mode)
+  except NameError:
+    matplotlib.use('pdf')
+    
 import matplotlib.pyplot as plt
 import numpy
 import scipy, scipy.stats
 import argparse
-import tspl, tspl_utils
+import tspl, tspl_utils, lariat_utils
 
 def plot_ratios(ts,tmid,ratio,ratio2,rate,var,fig,ax,full):
   # Compute y-axis min and max, expand the limits by 10%
   ymin=min(numpy.minimum(ratio,ratio2))
   ymax=max(numpy.maximum(ratio,ratio2))
   ymin,ymax=tspl_utils.expand_range(ymin,ymax,0.1)
+
+  ld=lariat_utils.LariatData(ts.j.id,ts.j.end_time,analyze_conf.lariat_path)
 
   print '---------------------'
   ax[0].plot(tmid/3600,ratio)
@@ -34,7 +40,10 @@ def plot_ratios(ts,tmid,ratio,ratio2,rate,var,fig,ax,full):
 
   ymin1,ymax1=tspl_utils.expand_range(ymin1,ymax1,0.1)
 
-  title=ts.title + ', V: %(V)-8.3g' % {'V' : var}
+  title=ts.title
+  if ld.exc != 'unknown':
+    title += ', E: ' + ld.exc.split('/')[-1]
+  title += ', V: %(V)-8.3g' % {'V' : var}
   plt.suptitle(title)
   ax[0].set_xlabel('Time (hr)')
   ax[0].set_ylabel('Imbalance Ratios')
@@ -43,7 +52,8 @@ def plot_ratios(ts,tmid,ratio,ratio2,rate,var,fig,ax,full):
   ax[0].set_ylim(bottom=ymin,top=ymax)
   ax[1].set_ylim(bottom=ymin1,top=ymax1)
 
-  fname='_'.join(['graph',ts.j.id,ts.k1[0],ts.k2[0],'imbalance'+full])
+  fname='_'.join(['graph',ts.j.id,ts.owner,
+                  ts.k1[0],ts.k2[0],'imbalance'+full])
   fig.savefig(fname)
   plt.close()
 
@@ -57,8 +67,12 @@ def compute_imbalance(file,k1,k2,threshold,plot_flag,full_flag,ratios):
       ts=tspl.TSPLSum(file,k1,k2)
   except tspl.TSPLException as e:
     return
+  except EOFError as e:
+    print 'End of file found reading: ' + file
+    return
 
-  if not tspl_utils.checkjob(ts,3600,16): # 1 hour, 16way only
+  ignore_qs=['gpu','gpudev','vis','visdev']
+  if not tspl_utils.checkjob(ts,3600,16,ignore_qs): # 1 hour, 16way only
     return
   elif ts.numhosts < 2: # At least 2 hosts
     print ts.j.id + ': 1 host'
@@ -87,7 +101,7 @@ def compute_imbalance(file,k1,k2,threshold,plot_flag,full_flag,ratios):
       vals[j].append(v[j])
     mean.append(scipy.stats.tmean(vals[j]))
     std.append(scipy.stats.tstd(vals[j]))
-    
+
   imbl=maxval-minval
   ratio=numpy.divide(std,mean)
   ratio2=numpy.divide(imbl,maxval)
@@ -95,7 +109,7 @@ def compute_imbalance(file,k1,k2,threshold,plot_flag,full_flag,ratios):
   var=scipy.stats.tmean(ratio) # mean of ratios is the threshold statistic
 
   # Save away a list of ratios per user
-  ratios[ts.j.id]=[var,ts.j.acct['owner']] 
+  ratios[ts.j.id]=[var,ts.owner] 
   print ts.j.id + ': ' + str(var)
   # If over the threshold, plot this job (This should be factored out)
   if plot_flag and abs(var) > threshold:

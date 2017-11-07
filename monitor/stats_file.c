@@ -163,32 +163,10 @@ int stats_file_open(struct stats_file *sf, const char *path)
     goto err;
   }
 
-  /* modified by charngda, Jan 11, 2012 */
-  /* On the old Myrinet/Pentium 4 nodes, e.g. f13n11,
-     if STDIN is closed (as in daemon mode), then
-     fopen here will return STDIN, i.e. 0. This causes
-     trouble later when doing seek and write to
-     sf->sf_file ("bad file descriptor") in stats_file_close().
-     Hence, we keep trying fopen until fopen returns a
-     file descriptor larger than STDERR, i.e. 2.
-   */
-  int tmpfds[STDERR_FILENO+1] = {0};
-  while (1) {
-    sf->sf_file = fopen(sf->sf_path, "a+");
-    if (sf->sf_file == NULL) {
-      ERROR("cannot open `%s': %m\n", path);
-      goto err;
-    }
-    if (STDERR_FILENO < fileno(sf->sf_file)) {
-      int i;
-      for (i=0; i <=STDERR_FILENO; ++i) {
-        if (tmpfds[i]) close(i);
-      }
-      break;
-    }
-    else {
-      tmpfds[fileno(sf->sf_file)]=1;
-    }
+  sf->sf_file = fopen(sf->sf_path, "a+");
+  if (sf->sf_file == NULL) {
+    ERROR("cannot open `%s': %m\n", path);
+    goto err;
   }
 
   if (sf_rd_hdr(sf) < 0) {
@@ -201,29 +179,15 @@ int stats_file_open(struct stats_file *sf, const char *path)
 
 int stats_file_mark(struct stats_file *sf, const char *fmt, ...)
 {
-  char *s = NULL;
-
+  /* TODO Concatenate new mark with old. */
   va_list args;
   va_start(args, fmt);
-  vasprintf(&s, fmt, args);
-  va_end(args);
-  if (s) {
-    if (NULL == sf->sf_mark) {
-      sf->sf_mark = s;
-    }
-    else {
-      /* Concatenate new mark with old, using "\xff" as delimiter */
-      char *t = NULL;
-      if (0<asprintf(&t, "%s\xff%s", sf->sf_mark,s)) {
-        free(sf->sf_mark);
-        sf->sf_mark = t;
-      }
-      free(s);
-    }
-  }
-  else {
+
+  if (vasprintf(&sf->sf_mark, fmt, args) < 0)
     sf->sf_mark = NULL;
-  }
+
+  va_end(args);
+
   return 0;
 }
 
@@ -231,37 +195,29 @@ int stats_file_close(struct stats_file *sf)
 {
   int rc = 0;
 
-  /* write header */
   if (sf->sf_empty)
     sf_wr_hdr(sf);
 
   fseek(sf->sf_file, 0, SEEK_END);
 
-  /* write timestamp and job id's */
   sf_printf(sf, "\n%ld %s\n", (long) current_time, current_jobid);
 
   /* Write mark. */
-  if (sf->sf_mark) {
-    char *s = strdup(sf->sf_mark);
-    char *orig = s;
-    while (*s) {
-      if ('\n'==*s) *s=' ';
-      ++s;
+  if (sf->sf_mark != NULL) {
+    const char *str = sf->sf_mark;
+    while (*str != 0) {
+      const char *eol = strchrnul(str, '\n');
+      sf_printf(sf, "%c%*s\n", SF_MARK_CHAR, (int) (eol - str), str);
+      str = eol;
+      if (*str == '\n')
+        str++;
     }
-    /* marks are delimitered by "\xff" */
-    s = strtok(orig,"\xff");
-    while (s) {
-      sf_printf(sf, "%c %s\n", SF_MARK_CHAR,s);
-      s = strtok(NULL,"\xff");
-    }
-    free(orig);
   }
 
   /* Write stats. */
   size_t i = 0;
   struct stats_type *type;
   while ((type = stats_type_for_each(&i)) != NULL) {
-      
     if (!(type->st_enabled && type->st_selected))
       continue;
 
@@ -278,7 +234,6 @@ int stats_file_close(struct stats_file *sf)
 
       sf_printf(sf, "\n");
     }
-    
   }
 
   if (ferror(sf->sf_file)) {
