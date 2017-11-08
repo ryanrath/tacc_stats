@@ -1,12 +1,29 @@
-import time
+import pytz
+import datetime
 
-def isodate(s):
-    """ Return the unix timestamp for a date represented in the LOCAL timezone """
-    """ Note that it is strongly recommended to store dates with their timezone """
-    """ information. The absence of the timezone means that some dates are ambigous """
-    return int(time.mktime(time.strptime(s,'%Y-%m-%dT%H:%M:%S')))
+class TimeFixer(object):
+    """ Compute the posix timestamp of a timestamp that is assumed to be in a given timezone. """
 
-def isodate_pacific(s):
-    """ Return an estimate for the unix timestamp for a date represented in US/Pacific time """
-    """ this code will not correctly handle daylight savings transitions """
-    return isodate(s) + (3 * 3600)
+    def __init__(self, timezoneName, guessEarly):
+        """ timezoneName name of target timezone
+            guessEarly if the time string is ambigous (due to e.g. DST change) then whether to return the earlier possible time or the later one (true for earlier).
+            """
+        self.timezone = pytz.timezone(timezoneName)
+        self.is_dst = guessEarly
+
+    @staticmethod
+    def to_posix(date):
+        """ returns a posix timestamp for a non-timezone aware date time """
+        return (date - datetime.datetime(1970, 1, 1)).total_seconds()
+
+    def __call__(self, arg):
+        """ main impl """
+        time = datetime.datetime.strptime(arg, '%Y-%m-%dT%H:%M:%S')
+
+        time_ts = self.to_posix(time)
+        try:
+            time_ts -= self.timezone.utcoffset(time).total_seconds()
+        except pytz.exceptions.AmbiguousTimeError:
+            time_ts -= self.timezone.utcoffset(time, self.is_dst).total_seconds()
+
+        return int(round(time_ts))

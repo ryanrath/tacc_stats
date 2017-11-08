@@ -1,7 +1,7 @@
 import csv, os, datetime, glob, re
 import codecs
 from torque_acct import TorqueAcct
-from parsers import isodate_pacific
+from parsers import TimeFixer
 
 def factory(kind,acct_file,host_name_ext=''):
   if kind == 'SGE':
@@ -311,13 +311,16 @@ class SLURMNative2Acct(SLURMNativeAcct):
 
   def __init__(self,acct_file,host_name_ext):
 
+    self.starttimeconverter = TimeFixer('America/Los_Angeles', True)
+    self.endtimeconverter = TimeFixer('America/Los_Angeles', False)
+
     self.fields = (
       ('id',                          str, 'Job identifier'),
       ('uid',                         str, 'User that is running the job'),
       ('project',                     str, 'Job account'),
-      ('start_time',                  isodate_pacific, 'Time job started to run'),
-      ('end_time',                    isodate_pacific, 'Time job ended'),
-      ('queue_time',                  isodate_pacific, 'Time the job was submitted'),
+      ('start_time',                  self.starttimeconverter, 'Time job started to run'),
+      ('end_time',                    self.endtimeconverter, 'Time job ended'),
+      ('queue_time',                  self.starttimeconverter, 'Time the job was submitted'),
       ('queue',                       str, 'Job partition'),
       ('timelimit',                   str, 'Assigned time limit'),
       ('name',                        str, 'Job name'),
