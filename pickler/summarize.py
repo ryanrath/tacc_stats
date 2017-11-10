@@ -666,6 +666,11 @@ def summarize(j, lariatcache):
         statsOk = False
         summaryDict['Error'].append( "No CPU information" )
 
+    if 'intel_knl' in totals and 'CLOCKS_UNHALTED_REF' in totals['intel_knl']:
+        if numpy.max(totals['intel_knl']['CLOCKS_UNHALTED_REF']) > (j.end_time - j.start_time)* 1.0e9 * 10:
+            statsOk = False
+            summaryDict['Error'].append( "Corrupt H/W counters")
+
     # Change series values into per entity values e.g. Memory per node or IO per node
     for metricname, ifstats in series.iteritems():
         for interface, devstats in ifstats.iteritems():
