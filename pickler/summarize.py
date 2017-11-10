@@ -102,6 +102,14 @@ def gentimedata(j, indices, ignorelist, isevent):
         "intel_knl": {
             "meancpiref":  ["numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED"]
         },
+        "intel_skx": {
+            "meancpiref":  ["numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED"],
+            "flops": ["8.0*numpy.diff(a[0]) + 4.0*numpy.diff(a[1]) + 2.0*numpy.diff(a[2]) + numpy.diff(a[3])",
+                      "FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE",
+                      "FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE",
+                      "FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE",
+                      "FP_ARITH_INST_RETIRED_SCALAR_DOUBLE"]
+        },
             "intel_pmc3": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
@@ -112,12 +120,18 @@ def gentimedata(j, indices, ignorelist, isevent):
         "intel_snb_imc": {
             "membw": [ "64.0 * (a[0] + a[1])", "CAS_READS", "CAS_WRITES" ]
         },
+        "intel_skx_imc": {
+            "membw": [ "64.0 * (a[0] + a[1])", "CAS_READS", "CAS_WRITES" ]
+        },
         "mem": {
             "mem_used_minus_cache": [ "a[0] - a[1] - a[2]", "MemUsed", "FilePages", "Slab" ]
         }
     }
+
     if "intel_snb_imc" in isevent:
         isevent["intel_snb_imc"]["membw"] = True
+    if "intel_skx_imc" in isevent:
+        isevent["intel_skx_imc"]["membw"] = True
     if "mem" in isevent:
         isevent["mem"]["mem_used_minus_cache"] = False
 
@@ -380,6 +394,8 @@ def getperinterfacemetrics():
     return [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci",
              "amd64_core",
              "amd64_sock",
+             "intel_skx",
+             "intel_skx_imc",
              "intel_knl",
              "intel_knl_mc_uclk",
              "intel_knl_mc_dclk",
@@ -597,7 +613,7 @@ def summarize(j, lariatcache):
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
-                elif metricname == "intel_knl":
+                elif metricname == "intel_knl" or metricname == "intel_skx":
                     if metricname not in j.overflows:
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
@@ -607,7 +623,7 @@ def summarize(j, lariatcache):
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
-                elif metricname == "intel_snb_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
+                elif metricname == "intel_snb_imc" or metricname == "intel_skx_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
                     if metricname not in j.overflows:
                         compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
 
@@ -685,15 +701,14 @@ def summarize(j, lariatcache):
     if statsOk:
         ttt = TimeSeriesSummary(cpus_combined)
         timeseries = ttt.process(j,indices)
-        # Temp disable bulk timedata generation until it has been validated
-        #timedata = gentimedata(j, indices, ignorelist, isevent)
+        timedata = gentimedata(j, indices, ignorelist, isevent)
 
     if statsOk:
         for mname, mdata in corederived.iteritems():
             # Store CPI per core
             if len(mdata) > 0:
                 summaryDict[mname] = calculate_stats(mdata)
-                if len(mdata) != len( totals['cpu']['all'] ):
+                if len(mdata) <= len( totals['cpu']['all'] ):
                     summaryDict[mname]['error'] = 2
                     summaryDict[mname]['error_msg'] = 'Not all cores have counters'
 

@@ -113,6 +113,10 @@ class TimeSeriesSummary(object):
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
             }, {
+                "metric": "intel_skx_imc",
+                "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
+                "interfaces": [ "CAS_READS", "CAS_WRITES" ]
+            }, {
                 "metric": "intel_uncore",
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "L3_MISS_READ", "L3_MISS_WRITE" ]
@@ -137,6 +141,13 @@ class TimeSeriesSummary(object):
                 "metric": "intel_snb",
                 "formula": "numpy.diff( a[0] + a[1] + a[2] ) / delta_t",
                 "interfaces": ["SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR"]
+            }, {
+                "metric": "intel_skx",
+                "formula": "numpy.diff( 8.0 * a[0] + 4.0 * a[1] + 2.0 * a[2] + a[3]) / delta_t",
+                "interfaces": ["FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE",
+                               "FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE",
+                               "FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE",
+                               "FP_ARITH_INST_RETIRED_SCALAR_DOUBLE"]
             }, {
                 "metric": "intel_pmc3",
                 "formula":  "numpy.diff( a[0] ) / delta_t",
