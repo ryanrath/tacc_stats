@@ -15,7 +15,7 @@ class DbInterface:
 
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults)
         self.tablename = tablename
-        self.query = "INSERT IGNORE INTO " + tablename + " (resource_id,cluster,local_job_id,start_time_ts,end_time_ts,record,ingest_version) VALUES(%s,%s,%s,%s,%s,COMPRESS(%s)," + str(VERSION_NUMBER) + ")"
+        self.query = "INSERT IGNORE INTO " + tablename + " (resource_id,job_array_index,local_job_id,start_time_ts,end_time_ts,record,ingest_version) VALUES(%s,%s,%s,%s,%s,COMPRESS(%s)," + str(VERSION_NUMBER) + ")"
         self.buffered = 0
 
     def resettable(self,dropexisting = False):
@@ -26,7 +26,7 @@ class DbInterface:
         cur.execute("CREATE TABLE IF NOT EXISTS " + self.tablename + "(" + \
                 "resource_id INT NOT NULL,"  + \
                 "local_job_id INT NOT NULL," + \
-                "cluster VARCHAR(32) NOT NULL," + \
+                "job_array_index SMALLINT UNSIGNED DEFAULT NULL," + \
                 "start_time_ts INT NOT NULL," + \
                 "end_time_ts INT NOT NULL," + \
                 "process_version INT NOT NULL DEFAULT -1," + \
@@ -34,7 +34,7 @@ class DbInterface:
                 "ingest_version INT NOT NULL," + \
                 "summary_version CHAR(8) NOT NULL DEFAULT 'na'," + \
                 "record BLOB," + \
-                "UNIQUE (resource_id,local_job_id,cluster,end_time_ts)," + \
+                "UNIQUE (resource_id,local_job_id,job_array_index,end_time_ts)," + \
                 "INDEX (end_time_ts,resource_id,process_version)," + \
                 "INDEX (resource_id,process_version)" + \
                 ") " )
@@ -73,10 +73,10 @@ class DbLogger(object):
 
     def logprocessed(self, acct, resource_id, version):
 
-        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND cluster = %s AND end_time_ts = %s"
-        cluster = acct['cluster'] if 'cluster' in acct else ""
+        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND job_array_index = %s AND end_time_ts = %s"
+        job_array_index = acct['job_array_index'] if 'job_array_index' in acct else None
         local_jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
-        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, cluster, acct['end_time'] )
+        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, job_array_index, acct['end_time'] )
 
         cur = self.con.cursor()
         cur.execute(query, data)
@@ -180,10 +180,10 @@ def ingest(config, end_time, start_time = None):
 
             record = []
             record.append( resource['resource_id'] )
-            if 'cluster' in acct:
-                record.append(acct['cluster'])
+            if 'job_array_index' in acct:
+                record.append(acct['job_array_index'])
             else:
-                record.append("")
+                record.append(None)
 
             jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
             record.append( jobid )
