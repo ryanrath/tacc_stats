@@ -6,6 +6,7 @@ import batch_acct
 import json
 import sys
 import time
+import getopt
 from summarize import SUMMARY_VERSION
 
 VERSION_NUMBER = 1
@@ -201,16 +202,50 @@ def ingest(config, end_time, start_time = None):
         dbif.postinsert()
 
 
+def usage():
+    print '''
+Usage: account.py [OPTION] [CONFIG PATH] [END TIME]
+
+Ingest account data into the staging tables for the XSEDE SUPReMM workflow
+
+   -s STARTTIME   Only process account records where the job end time is
+                  greater than this value. The time is spcified as a POSIX
+                  timestamp.  Default is 2 days before the end time of the most
+                  recently ingested job.
+
+   -e ENDTIME     Only process account records where the job end time is
+                  less than this value. The time is spcified as a POSIX
+                  timestamp. Default is +Inf. To maintain backwards
+                  compatibility, the end time may also be specified as the
+                  second non-option argument.
+
+   -h             Print this help message and exit.
+'''
+
+def main():
+
+    optlist, args = getopt.getopt(sys.argv[1:], 'hs:e:')
+
+    conffile = None
+    start_time = None
+    end_time = 9223372036854775807L
+
+    for option, argument in optlist:
+        if option == '-h':
+            usage()
+            sys.exit(1)
+        elif option == '-s':
+            start_time = int(argument)
+        elif option == '-e':
+            end_time = int(argument)
+
+    if len(args) > 0:
+        conffile = args[0]
+
+    if len(args) > 1:
+        end_time = args[1]
+
+    ingest(getconfig(conffile), end_time, start_time)
+
 if __name__ == "__main__":
-
-    if len(sys.argv) > 1:
-        config = getconfig(sys.argv[1])
-    else:
-        config = getconfig()
-
-    if len(sys.argv) > 2:
-        end_time = sys.argv[2]
-    else:
-        end_time = 9223372036854775807L
-
-    ingest(config, end_time)
+    main()
