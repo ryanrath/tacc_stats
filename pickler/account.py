@@ -73,10 +73,15 @@ class DbLogger(object):
 
     def logprocessed(self, acct, resource_id, version):
 
-        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND job_array_index = %s AND end_time_ts = %s"
-        job_array_index = acct['job_array_index'] if 'job_array_index' in acct else None
+        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND end_time_ts = %s"
         local_jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
-        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, job_array_index, acct['end_time'] )
+        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, acct['end_time'] )
+
+        if 'job_array_index' in acct:
+            query += " AND job_array_index = %s"
+            data += (acct['job_array_index'], )
+        else:
+            query += " AND job_array_index IS NULL"
 
         cur = self.con.cursor()
         cur.execute(query, data)

@@ -36,6 +36,9 @@ class BatchAcct(object):
   def fixuprecord(self, d):
     pass
 
+  def postprocessrecord(self, d):
+      return True
+
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
     """reader(start_time=0, end_time=9223372036854775807L, seek=0)
     Return an iterator for all jobs that finished between start_time and end_time.
@@ -73,6 +76,9 @@ class BatchAcct(object):
           ## Clean up when colons exist in job name
           if None in d:
             self.fixuprecord(d)
+
+          if self.postprocessrecord(d) == False:
+              continue
 
           if d['end_time'] == 0:
               # Skip jobs that have no defined end time (occurs when certain schedulers do not allocate resources for job)
@@ -330,10 +336,33 @@ class SLURMNative2Acct(SLURMNativeAcct):
       ('node_list',                   str, 'Nodes used in job'),
       )
 
+    # The job array regular expression should match:
+    #   1) normal job 2342323
+    #   2) job array  344354_32
+    #   3) job array range 23423_[1-2,5]
+    #
+    # mtch.group(2) is None if there is no job array index otherwise
+    # it is the job array index (or the first job array index for a range).
+    self.jobarraydetect = re.compile(r"(\d+)(?:_\[?(\d+)[\d,-]*\]?)?")
+
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
   def fixuprecord(self, d):
       pass
+
+  def postprocessrecord(self, d):
+    mtch = self.jobarraydetect.match(d['id'])
+
+    if mtch == None:
+        print "Invalid job id ", d
+        return False
+
+    d['local_jobid'] = mtch.group(1)
+
+    if mtch.group(2) != None:
+        d['job_array_index'] = mtch.group(2)
+
+    return True
 
 class XDcDBAcct(BatchAcct):
   """ Process accounting data produced by grabbing it from the modw.jobfact 

@@ -781,6 +781,8 @@ def summarize(j, lariatcache):
     uniq = str( j.acct['local_jobid'] if 'local_jobid' in j.acct else j.acct['id'])
     if 'cluster' in j.acct:
         uniq += "-" + j.acct['cluster']
+    if 'job_array_index' in j.acct:
+        uniq += "-" + j.acct['job_array_index']
     uniq += "-" + str(j.acct['end_time'])
 
     summaryDict['_id'] = uniq
