@@ -183,6 +183,8 @@ def gentimedata(j, indices, ignorelist, isevent):
         for i,a in v.iteritems():
             if i == "all":
                 continue
+            if '.' in i:
+                continue
             if m == "cpu":
                 results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(hostdata[m]["all"]) )
             elif isevent[m][i]:
@@ -377,7 +379,7 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
     totals = None
     for devstats in hoststats[metricname].itervalues():
-        if totals == None:
+        if totals is None:
             if interface == "all":
                 totals = numpy.sum(devstats, axis = 1)
             else:
