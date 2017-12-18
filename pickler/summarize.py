@@ -501,7 +501,7 @@ def summarize(j, lariatcache):
 
     nHosts = 0
     corederived = { "cpicore": [], "cpiref": [], "cpldref": [] }
-    nodederived = {'maxmem': [], 'maxmemminus': []}
+    nodederived = {'maxmem': [], 'maxmemminus': [], 'maxMemBytes': [], 'maxMemMinusBytes': []}
     socketderived = { "membw": [] }
 
     totaltimes = []
@@ -659,6 +659,8 @@ def summarize(j, lariatcache):
         if 'hostused' in hostmemory:
             nodederived['maxmem'].append(numpy.amax(hostmemory['hostused'] * 1.0 / hostmemory['hosttotal']))
             nodederived['maxmemminus'].append(numpy.amax(hostmemory['hostusedminus'] * 1.0 / hostmemory['hosttotal']))
+            nodederived['maxMemBytes'].append(numpy.amax(hostmemory['hostused']))
+            nodederived['maxMemMinusBytes'].append(numpy.amax(hostmemory['hostusedminus']))
 
     # end loop over hosts
 
