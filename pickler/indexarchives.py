@@ -201,6 +201,20 @@ def datetimetoposix(dt):
         utc_naive = dt
     return (utc_naive - datetime(1970, 1, 1)).total_seconds()
 
+class FileBasedArchiveFinder(object):
+    """ Iterator for files specified in a text file """
+    def __init__(self, filelist):
+        self.filelist = filelist
+
+    def find(self, topdir):
+        """ Find specified files under topdir """
+        with open(self.filelist, "r") as fp:
+            for line in fp:
+                archive = os.path.join(topdir, line.strip())
+                if os.path.isfile(archive):
+                    yield archive
+
+
 class TaccStatsArchiveFinder(object):
     """ Helper class that finds all tacc_stats archive files in a directory
         mindate is the minimum datestamp of files that should be processed
@@ -265,6 +279,9 @@ def usage():
     print "usage: {0} [OPTS]".format(os.path.basename(__file__))
     print "  -r --resource=RES    process only archive files for the specified resource,"
     print "                       if absent then all resources are processed"
+    print "  -f --filelist=LST    list of archive files to process - if this option is "
+    print "                       present then the resource MUST be specified and the other"
+    print "                       file selection options are ignored"
     print "  -c --config=PATH     specify the path to the configuration directory"
     print "  -m --mindate=DATE    specify the minimum datestamp of archives to process"
     print "                       (default", DAY_DELTA, "days ago)"
@@ -281,10 +298,11 @@ def getoptions():
         "log": logging.INFO,
         "resource": None,
         "config": None,
+        "filelist": None,
         "mindate": datetime.now() - timedelta(days=DAY_DELTA)
     }
 
-    opts, _ = getopt(sys.argv[1:], "r:c:m:adqh", ["resource=", "config=", "mindate=", "all", "debug", "quiet", "help"])
+    opts, _ = getopt(sys.argv[1:], "r:c:m:f:adqh", ["resource=", "config=", "mindate=", "filelist=", "all", "debug", "quiet", "help"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -295,6 +313,8 @@ def getoptions():
             retdata['log'] = logging.ERROR
         elif opt[0] in ("-c", "--config"):
             retdata['config'] = opt[1]
+        elif opt[0] in ("-f", "--filelist"):
+            retdata['filelist'] = opt[1]
         elif opt[0] in ("-m", "--mindate"):
             retdata['mindate'] = parsetime(opt[1])
         elif opt[0] in ("-a", "--all"):
@@ -302,6 +322,10 @@ def getoptions():
         elif opt[0] in ("-h", "--help"):
             usage()
             sys.exit(0)
+
+    if retdata['filelist'] is not None and retdata['resource'] is None:
+        print "Error must specify resource when selecting archive files by filelist"
+        sys.exit(1)
 
     return retdata
 
@@ -326,7 +350,11 @@ def runindexing():
                 pathfilter = re.compile(resource['path_filter'])
 
             acache = TaccStatsArchiveProcessor(config, resource)
-            afind = TaccStatsArchiveFinder(opts['mindate'], pathfilter)
+
+            if opts['filelist'] is not None:
+                afind = FileBasedArchiveFinder(opts['filelist'])
+            else:
+                afind = TaccStatsArchiveFinder(opts['mindate'], pathfilter)
 
             for archivefile in afind.find(resource['tacc_stats_home'] + "/archive"):
                 acache.processarchive(archivefile)
