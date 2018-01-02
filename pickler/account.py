@@ -27,7 +27,7 @@ class DbInterface:
         cur.execute("CREATE TABLE IF NOT EXISTS " + self.tablename + "(" + \
                 "resource_id INT NOT NULL,"  + \
                 "local_job_id INT NOT NULL," + \
-                "job_array_index SMALLINT UNSIGNED DEFAULT NULL," + \
+                "job_array_index SMALLINT(5) NOT NULL DEFAULT '-1'," + \
                 "start_time_ts INT NOT NULL," + \
                 "end_time_ts INT NOT NULL," + \
                 "process_version INT NOT NULL DEFAULT -1," + \
@@ -74,15 +74,10 @@ class DbLogger(object):
 
     def logprocessed(self, acct, resource_id, version):
 
-        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND end_time_ts = %s"
+        query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND job_array_index = %s AND end_time_ts = %s"
         local_jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
-        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, acct['end_time'] )
-
-        if 'job_array_index' in acct:
-            query += " AND job_array_index = %s"
-            data += (acct['job_array_index'], )
-        else:
-            query += " AND job_array_index IS NULL"
+        job_array_index = acct['job_array_index'] if 'job_array_index' in acct else -1
+        data = ( version, SUMMARY_VERSION, resource_id, local_jobid, job_array_index, acct['end_time'] )
 
         cur = self.con.cursor()
         cur.execute(query, data)
@@ -189,7 +184,7 @@ def ingest(config, end_time, start_time = None):
             if 'job_array_index' in acct:
                 record.append(acct['job_array_index'])
             else:
-                record.append(None)
+                record.append(-1)
 
             jobid = acct['local_jobid'] if 'local_jobid' in acct else acct['id']
             record.append( jobid )
