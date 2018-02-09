@@ -16,6 +16,7 @@ import re
 from mpi4py import MPI
 
 PROCESS_VERSION = 4
+ERROR_INCOMPLETE = -1001
 
 def parsetime(strtime):
     """ Try to be flexible in the time formats supported:
@@ -65,7 +66,7 @@ def createsummary(options, totalprocs, procid):
 
     logging.info("Processor " + procidstr + "starting")
 
-    referencetime = int(time.time()) - ( 3 * 24 * 3600 ) 
+    referencetime = int(time.time()) - ( 7 * 24 * 3600 ) 
 
     config = account.getconfig(options['config'])
     dbconf = config['accountdatabase']
@@ -106,12 +107,13 @@ def createsummary(options, totalprocs, procid):
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'], bacct )
             summary,timeseries = summarize.summarize(job, lariat)
 
+            insertOk = outdb.insert(resourcename, summary, timeseries)
+
             if summary['complete'] == False and summary["acct"]['end_time'] > referencetime:
                 # Do not mark incomplete jobs as done unless they are older than the
-                # reference time (which defaults to 3 days ago)
+                # reference time (which defaults to 7 days ago)
+                dbwriter.logprocessed(acct, settings['resource_id'], ERROR_INCOMPLETE)
                 continue
-
-            insertOk = outdb.insert(resourcename, summary, timeseries)
             
             if insertOk:
                 dbwriter.logprocessed( acct, settings['resource_id'], PROCESS_VERSION )
