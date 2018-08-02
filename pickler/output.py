@@ -16,8 +16,8 @@ class StdoutOutput(object):
 
     def insert(self, resourcename, summary, timeseries):
         print resourcename
-        print json.dumps(summary, indent=4)
-        print json.dumps(timeseries, indent=4)
+        print json.dumps(summary, indent=4, default=str)
+        print json.dumps(timeseries, indent=4, default=str)
         return True
 
     def logreport(self, report):
