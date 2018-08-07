@@ -33,6 +33,10 @@ class DbArchiveCache(object):
         for host in cur:
             self._hostnamecache[host[0]] = 1
 
+        cur.execute("SELECT `name` FROM `version`")
+        for tacc_version in cur:
+            self._versioncache[tacc_version[0]] = 1
+
     def hostinsert(self, cur, hostname):
         if hostname not in self._hostnamecache:
             cur.execute("INSERT IGNORE INTO hosts (hostname, resource_id) VALUES (%s, %s)", [hostname, self.resource_id])
@@ -169,7 +173,8 @@ class TaccStatsArchiveProcessor(object):
             logging.debug("processed archive %s", archive)
 
         except IOError as ioe:
-            logging.error("archive %s. %s", archive, exc.message())
+            logging.error("archive %s. I/O error(%s): %s", archive, ioe.errno, ioe.strerror)
+
 
     def close(self):
         """ cleanup and close the connection """
