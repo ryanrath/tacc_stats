@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """ job summary output """
+import json
+import logging
 from pymongo import MongoClient
 from pymongo.errors import InvalidDocument
-import json
 
 def factory(dbconfig):
     if dbconfig['dbtype'] == 'stdout':
