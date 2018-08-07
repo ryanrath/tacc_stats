@@ -39,6 +39,7 @@ class TorqueAcct(object):
                 "Resource_List.pmem": ["requested_vmemory", str],
                 "Resource_List.cput": ["requested_cpu_time", str],
                 "Resource_List.pvmem": ["requested_pvmem", str],
+                "Resource_List.vmem": ["requested_vmem", str],
                 "resources_used.cput": ["cpu_time", str],
                 "resources_used.mem": ["mem_used", str],
                 "resources_used.vmem": ["vmem_used", str],
