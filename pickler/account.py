@@ -6,17 +6,44 @@ import batch_acct
 import json
 import sys
 import time
+import logging
 import getopt
 from summarize import SUMMARY_VERSION
 
 VERSION_NUMBER = 1
+
+def setuplogger(consolelevel, filename=None, filelevel=None):
+    """ setup the python root logger to log to the console with defined log
+        level. Optionally also log to file with the provided level """
+
+    if filelevel == None:
+        filelevel = consolelevel
+
+    logging.captureWarnings(True)
+
+    rootlogger = logging.getLogger()
+    rootlogger.setLevel(min(consolelevel, filelevel))
+
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+
+    if filename != None:
+        filehandler = logging.FileHandler(filename)
+        filehandler.setLevel(filelevel)
+        filehandler.setFormatter(formatter)
+        rootlogger.addHandler(filehandler)
+
+    consolehandler = logging.StreamHandler()
+    consolehandler.setLevel(consolelevel)
+    consolehandler.setFormatter(formatter)
+    rootlogger.addHandler(consolehandler)
+
 
 class DbInterface:
     def __init__(self, dbname, tablename, mydefaults):
 
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults)
         self.tablename = tablename
-        self.query = "INSERT IGNORE INTO " + tablename + " (resource_id,job_array_index,local_job_id,start_time_ts,end_time_ts,record,ingest_version) VALUES(%s,%s,%s,%s,%s,COMPRESS(%s)," + str(VERSION_NUMBER) + ")"
+        self.query = "INSERT INTO " + tablename + " (resource_id,job_array_index,local_job_id,start_time_ts,end_time_ts,record,ingest_version) VALUES(%s,%s,%s,%s,%s,COMPRESS(%s)," + str(VERSION_NUMBER) + ") ON DUPLICATE KEY UPDATE ingest_version = VALUES(ingest_version), record = VALUES(record)"
         self.buffered = 0
 
     def resettable(self,dropexisting = False):
@@ -175,7 +202,7 @@ def ingest(config, end_time, start_time = None):
             else:
                 start_time = start_time - (2* 24 * 3600)
 
-        acctreader = batch_acct.factory( resource['batch_system'], resource['acct_path'], resource['host_name_ext'])
+        acctreader = batch_acct.factory( resource['batch_system'], resource['acct_path'], resource['host_name_ext'], resource['resource_id'], config)
 
         for acct in acctreader.reader(start_time, end_time):
 
@@ -214,12 +241,15 @@ Ingest account data into the staging tables for the XSEDE SUPReMM workflow
                   compatibility, the end time may also be specified as the
                   second non-option argument.
 
+   -d             enable debug logging
    -h             Print this help message and exit.
 '''
 
 def main():
 
-    optlist, args = getopt.getopt(sys.argv[1:], 'hs:e:')
+    optlist, args = getopt.getopt(sys.argv[1:], 'hds:e:')
+
+    loglevel = logging.WARNING
 
     conffile = None
     start_time = None
@@ -233,12 +263,16 @@ def main():
             start_time = int(argument)
         elif option == '-e':
             end_time = int(argument)
+        elif option == '-d':
+            loglevel = logging.DEBUG
 
     if len(args) > 0:
         conffile = args[0]
 
     if len(args) > 1:
         end_time = args[1]
+
+    setuplogger(loglevel)
 
     ingest(getconfig(conffile), end_time, start_time)
 

@@ -1,9 +1,11 @@
 import csv, os, datetime, glob, re
 import codecs
+import logging
+import MySQLdb as mdb
 from torque_acct import TorqueAcct
 from parsers import TimeFixer
 
-def factory(kind,acct_file,host_name_ext=''):
+def factory(kind, acct_file, host_name_ext='', resource_id=None, config=None):
   if kind == 'SGE':
     return SGEAcct(acct_file,host_name_ext)
   elif kind == 'SLURM':
@@ -11,7 +13,7 @@ def factory(kind,acct_file,host_name_ext=''):
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
   elif kind == 'SLURMNative2':
-    return SLURMNative2Acct(acct_file,host_name_ext)
+    return SLURMNative2Acct(acct_file,host_name_ext, resource_id, config)
   elif kind == 'XDcDB':
     return XDcDBAcct(acct_file,host_name_ext)
   elif kind == 'TORQUE':
@@ -60,7 +62,11 @@ class BatchAcct(object):
     else:
         filelist = [ self.acct_file ]
 
+    filelist.sort()
+
     for fname in filelist:
+        record_count = 0
+        skip_count = 0
         file = codecs.open(fname, "r", "utf-8", errors="replace")
         if seek:
             file.seek(seek, os.SEEK_SET)
@@ -78,20 +84,25 @@ class BatchAcct(object):
             self.fixuprecord(d)
 
           if self.postprocessrecord(d) == False:
+              skip_count += 1
               continue
 
           if d['end_time'] == 0:
               # Skip jobs that have no defined end time (occurs when certain schedulers do not allocate resources for job)
+              skip_count += 1
               continue
 
           # Accounting records with pe_taskid != NONE are generated for
           # sub_tasks of a tightly integrated job and should be ignored.
           if start_time <= d['end_time'] and d['end_time'] < end_time:
             if self.batch_kind=='SGE' and d['pe_taskid'] == 'NONE':
+              record_count += 1
               yield d
             elif self.batch_kind=='SLURM':
+              record_count += 1
               yield d
 
+        logging.debug('Processed %s records, %s skipped for %s', record_count, skip_count, fname)
         file.close()
 
 
@@ -276,6 +287,9 @@ class SLURMNativeAcct(BatchAcct):
 
   def get_host_list(self, nodelist):
     
+    if nodelist is None:
+        return []
+
     open_brace_flag = False
     close_brace_flag = False
     host_list = []
@@ -317,20 +331,21 @@ class SLURMNativeAcct(BatchAcct):
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
       for a in super(SLURMNativeAcct,self).reader(start_time, end_time, seek):
           a['host_list'] = self.get_host_list(a['node_list'])
-          a['hostname'] = a['host_list'][0]
+          if len(a['host_list']) > 0:
+            a['hostname'] = a['host_list'][0]
           yield a
 
 class SLURMNative2Acct(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command used by tacc_stats """
 
-  def __init__(self,acct_file,host_name_ext):
+  def __init__(self, acct_file, host_name_ext, resource_id, config):
 
     self.starttimeconverter = TimeFixer('America/Los_Angeles', True)
     self.endtimeconverter = TimeFixer('America/Los_Angeles', False)
 
     self.fields = (
       ('id',                          str, 'Job identifier'),
-      ('uid',                         str, 'User that is running the job'),
+      ('user',                        str, 'User that is running the job'),
       ('project',                     str, 'Job account'),
       ('start_time',                  self.starttimeconverter, 'Time job started to run'),
       ('end_time',                    self.endtimeconverter, 'Time job ended'),
@@ -353,6 +368,13 @@ class SLURMNative2Acct(SLURMNativeAcct):
     # it is the job array index (or the first job array index for a range).
     self.jobarraydetect = re.compile(r"(\d+)(?:_\[?(\d+)[\d,-]*\]?)?")
 
+    if config:
+        dbconfig = config['accountdatabase']
+        self.xdmod_db = mdb.connect(db=dbconfig['dbname'], read_default_file=dbconfig["defaultsfile"])
+    self.uidcache = {}
+
+    self.resource_id = resource_id
+
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
   def fixuprecord(self, d):
@@ -369,6 +391,30 @@ class SLURMNative2Acct(SLURMNativeAcct):
 
     if mtch.group(2) != None:
         d['job_array_index'] = mtch.group(2)
+
+    if 'user' in d:
+        if d['user'] in self.uidcache:
+            d['uid'] = self.uidcache[d['user']]
+        else:
+            cur = self.xdmod_db.cursor()
+            cur.execute("""
+SELECT
+    sa.uid
+FROM
+    modw.systemaccount sa,
+    modw.resourcefact rf,
+    modw.resourcefact rr
+WHERE
+    rr.id = %s
+    AND rf.organization_id = rr.organization_id
+    AND sa.username = %s
+    AND sa.resource_id = rf.id
+    AND sa.uid IS NOT NULL""", (self.resource_id, d['user']))
+
+            result = cur.fetchone()
+            if result:
+                d['uid'] = result[0]
+                self.uidcache[d['user']] = result[0]
 
     return True
 
