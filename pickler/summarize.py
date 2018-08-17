@@ -288,14 +288,17 @@ def calculate_stats(v):
 
     if len(v) > 0:
 
-        (
-          v_n,
-          (v_min, v_max),
-          v_avg,
-          v_var,
-          v_skew,
-          v_kurt,
-          ) = scipy.stats.describe(v)
+        try:
+            (
+              v_n,
+              (v_min, v_max),
+              v_avg,
+              v_var,
+              v_skew,
+              v_kurt,
+              ) = scipy.stats.describe(v)
+        except TypeError as e:
+            return { 'error': 'TypeError' }
 
         res['max'] = float(v_max)
         res['avg'] = v_avg
