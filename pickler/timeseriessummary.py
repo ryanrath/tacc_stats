@@ -105,10 +105,6 @@ class TimeSeriesSummary(object):
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
             }, {
-                "metric": "intel_knl_mc_dclk",
-                "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
-                "interfaces": [ "CAS_READS", "CAS_WRITES" ]
-            }, {
                 "metric": "intel_ivb_imc",
                 "formula": "numpy.diff( 64.0 *( a[0] + a[1] ) / GIGA) / delta_t",
                 "interfaces": [ "CAS_READS", "CAS_WRITES" ]
@@ -176,6 +172,10 @@ class TimeSeriesSummary(object):
         }
 
     def process(self, j, indices):
+
+        # Too many cpu cores takse up too much space
+        if 'cores' in j.acct and 1.0 * j.acct['cores'] / len(j.hosts) > 32:
+            self.metrics['cpuuser'][0]['devicebased'] = False
 
         self.times = computesubsamples(j.times, numpy.diff(j.times))
 

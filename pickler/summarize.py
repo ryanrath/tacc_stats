@@ -442,7 +442,7 @@ def summarize(j, lariatcache):
     conglomerates = [ "irq" ]
 
     # The ib and ib_ext counters are known to be incorrect on all tacc_stats systems
-    ignorelist = [ "ib", "ib_ext" ]
+    ignorelist = [ "ib", "ib_ext", "intel_knl_mc_dclk", "intel_knl_mc_uclk" ]
 
     # nfs metrics take up alot of space
     ignorelist.append("nfs")
@@ -688,7 +688,7 @@ def summarize(j, lariatcache):
         totalcpus = numpy.array(totals['cpu']['all'])
         summaryDict['cpuall'] = calculate_stats(totalcpus)
 
-        if cpus_combined == False and (min(totalcpus) < 90.0 or max(totalcpus) > 105.0):
+        if cpus_combined == False and (summaryDict['cpuall']['med'] > 105.0 or summaryDict['cpuall']['med'] < 90.0):
             summaryDict['Error'].append("Corrupt CPU counters")
             statsOk = False
         else:
