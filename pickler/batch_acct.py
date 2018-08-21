@@ -5,7 +5,7 @@ import MySQLdb as mdb
 from torque_acct import TorqueAcct
 from parsers import TimeFixer
 
-def factory(kind, acct_file, host_name_ext='', resource_id=None, config=None):
+def factory(kind, acct_file, host_name_ext='', resource=None, config=None):
   if kind == 'SGE':
     return SGEAcct(acct_file,host_name_ext)
   elif kind == 'SLURM':
@@ -13,7 +13,7 @@ def factory(kind, acct_file, host_name_ext='', resource_id=None, config=None):
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
   elif kind == 'SLURMNative2':
-    return SLURMNative2Acct(acct_file,host_name_ext, resource_id, config)
+    return SLURMNative2Acct(acct_file,host_name_ext, resource, config)
   elif kind == 'XDcDB':
     return XDcDBAcct(acct_file,host_name_ext)
   elif kind == 'TORQUE':
@@ -338,7 +338,7 @@ class SLURMNativeAcct(BatchAcct):
 class SLURMNative2Acct(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command used by tacc_stats """
 
-  def __init__(self, acct_file, host_name_ext, resource_id, config):
+  def __init__(self, acct_file, host_name_ext, resource, config):
 
     self.starttimeconverter = TimeFixer('America/Los_Angeles', True)
     self.endtimeconverter = TimeFixer('America/Los_Angeles', False)
@@ -368,12 +368,20 @@ class SLURMNative2Acct(SLURMNativeAcct):
     # it is the job array index (or the first job array index for a range).
     self.jobarraydetect = re.compile(r"(\d+)(?:_\[?(\d+)[\d,-]*\]?)?")
 
+    self.uidcache = {}
+    self.resource_id = None
+
     if config:
         dbconfig = config['accountdatabase']
         self.xdmod_db = mdb.connect(db=dbconfig['dbname'], read_default_file=dbconfig["defaultsfile"])
-    self.uidcache = {}
 
-    self.resource_id = resource_id
+    if resource:
+        self.resource_id = resource['resource_id']
+        if 'uidcache' in resource:
+            with open(resource['uidcache'], 'rb') as uidcachefile:
+                uidcachereader = csv.DictReader(uidcachefile, delimiter=',', quotechar='"')
+                for row in uidcachereader:
+                    self.uidcache[row['Username']] = int(row['UID'])
 
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
