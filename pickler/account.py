@@ -202,7 +202,7 @@ def ingest(config, end_time, start_time = None):
             else:
                 start_time = start_time - (2* 24 * 3600)
 
-        acctreader = batch_acct.factory( resource['batch_system'], resource['acct_path'], resource['host_name_ext'], resource['resource_id'], config)
+        acctreader = batch_acct.factory( resource['batch_system'], resource['acct_path'], resource['host_name_ext'], resource, config)
 
         for acct in acctreader.reader(start_time, end_time):
 

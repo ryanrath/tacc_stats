@@ -819,9 +819,9 @@ def summarize(j, lariatcache):
     if len(summaryDict['Error']) == 0:
         del summaryDict['Error']
 
-    """ Process procDump information from the tacc_stats file itself """
+    # Process procDump information from the tacc_stats file itself
     taccproc = TaccProcDump()
-    pl = taccproc.getproclist(j, None)
+    pl = taccproc.getproclist(j, int(j.acct['uid']) if 'uid' in j.acct and (isinstance(j.acct['uid'], (int, long)) or j.acct['uid'].isdigit()) else None)
 
     if len(pl) > 0:
         summaryDict['procDump'] = pl
