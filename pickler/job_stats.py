@@ -413,6 +413,21 @@ class Host(object):
         if self.state == ACTIVE:
             self.times.append( self.timestamp )
 
+    @staticmethod
+    def processproc(schema, devname, rest):
+        """ Process names may contain arbitrary data including the tacc_stats record delimiter character
+            Attempt to handle the case where the process name contains one of more record delimiters """
+
+        tokens = rest.split()
+
+        while len(tokens) > len(schema):
+            devname = devname + " " + tokens[0]
+            tokens.pop(0)
+
+        vals = numpy.asarray(tokens, dtype=numpy.uint64)
+
+        return devname, vals
+
     def processdata(self,line):
         if self.state == ACTIVE or self.state == LAST_RECORD:
 
@@ -429,7 +444,11 @@ class Host(object):
                         self.filename, type_name, self.fileline)
                 return
 
-            vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
+            if type_name == 'proc':
+                dev_name, vals = self.processproc(schema, dev_name, rest)
+            else:
+                vals = numpy.fromstring(rest, dtype=numpy.uint64, sep=' ')
+
             if vals.shape[0] != len(schema):
                 self.error("file `%s', type `%s', expected %d values, read %d, discarding line `%s'",
                        self.filename, type_name, len(schema), vals.shape[0], self.fileline)
