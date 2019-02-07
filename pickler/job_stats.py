@@ -374,7 +374,7 @@ class Host(object):
             pass
         elif ch == SF_PROPERTY_CHAR:
             self.processproperty(line)
-        elif ch == SF_MARK_CHAR:
+        elif ch == SF_MARK_CHAR or ch == '^':
             try:
                 self.processmark(line)
             except TypeError as e:
