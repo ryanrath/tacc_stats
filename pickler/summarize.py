@@ -363,7 +363,7 @@ def addmetrics(summary, overflows, device, interface, values):
 # records differ for different resources. I have no idea why the data isn't put in 
 # normalised form.
 def getnumhosts(acct):
-    if 'nodes' in acct:
+    if 'nodes' in acct and acct['nodes'] is not None:
         return int(acct['nodes'])
     if 'nnodes' in acct:
         return int(acct['nnodes'])
