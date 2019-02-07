@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import warnings
 import job_stats
 import batch_acct
 import account
@@ -169,6 +170,8 @@ def getoptions():
     return retdata
 
 def main():
+
+    warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)
 
     options = getoptions()
 
