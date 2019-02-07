@@ -91,7 +91,11 @@ def createsummary(options, totalprocs, procid):
             dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'])
         else:
             # Choose a process version that doesn't exist so that all jobs are selected
-            dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION + 1, totalprocs, procid, None)
+            selectedProcVersion = PROCESS_VERSION + 1
+            if options['ignoreprocessed']:
+                selectedProcVersion = PROCESS_VERSION
+
+            dbreader = account.DbAcct( settings['resource_id'], dbconf, selectedProcVersion, totalprocs, procid, None)
 
         bacct = batch_acct.factory(settings['batch_system'], settings['acct_path'], settings['host_name_ext'] )
 
@@ -171,11 +175,12 @@ def getoptions():
         "resource": None,
         "localjobid": None,
         "config": None,
+        "ignoreprocessed": False,
         "start": None,
         "end": None
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:s:e:dqh", ["resource=", "localjobid=", "config=", "start=", "end=", "debug", "quiet", "help"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:s:e:idqh", ["resource=", "localjobid=", "config=", "start=", "end=", "ignore-processed", "debug", "quiet", "help"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -192,6 +197,8 @@ def getoptions():
             retdata['start'] = (parsetime(opt[1]) - datetime.datetime(1970, 1, 1)).total_seconds()
         elif opt[0] in ("-e", "--end"):
             retdata['end'] = (parsetime(opt[1]) - datetime.datetime(1970, 1, 1)).total_seconds()
+        elif opt[0] in ("-i", "--ignore-processed"):
+            retdata['ignoreprocessed'] = True
         elif opt[0] in ("-h", "--help"):
             usage()
             sys.exit(0)
