@@ -180,6 +180,8 @@ def main():
     total_procs = options['nprocs'] * options['total_instances']
     start_offset = options['instance_id'] * options['nprocs']
 
+    exit_code = 0
+
     if options['nprocs'] == 1:
         createsummary(options, None, None)
     else:
@@ -190,7 +192,10 @@ def main():
             proclist.append(p)
 
         for proc in proclist:
-            p.join()
+            proc.join()
+            exit_code += proc.exitcode
+
+    sys.exit(exit_code)
 
 if __name__ == '__main__': 
     main()
