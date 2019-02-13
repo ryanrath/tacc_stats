@@ -9,34 +9,9 @@ import time
 import logging
 import getopt
 from summarize import SUMMARY_VERSION
+from scripthelpers import setuplogger
 
 VERSION_NUMBER = 1
-
-def setuplogger(consolelevel, filename=None, filelevel=None):
-    """ setup the python root logger to log to the console with defined log
-        level. Optionally also log to file with the provided level """
-
-    if filelevel == None:
-        filelevel = consolelevel
-
-    logging.captureWarnings(True)
-
-    rootlogger = logging.getLogger()
-    rootlogger.setLevel(min(consolelevel, filelevel))
-
-    formatter = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
-
-    if filename != None:
-        filehandler = logging.FileHandler(filename)
-        filehandler.setLevel(filelevel)
-        filehandler.setFormatter(formatter)
-        rootlogger.addHandler(filehandler)
-
-    consolehandler = logging.StreamHandler()
-    consolehandler.setLevel(consolelevel)
-    consolehandler.setFormatter(formatter)
-    rootlogger.addHandler(consolehandler)
-
 
 class DbInterface:
     def __init__(self, dbname, tablename, mydefaults):

@@ -14,6 +14,8 @@ import logging
 import output
 import os
 
+from scripthelpers import setuplogger
+
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
 
@@ -141,12 +143,13 @@ def getoptions():
 
     retdata = {
         "log": logging.INFO,
+        "logfile": None,
         "resource": None,
         "localjobid": None,
         "config": None
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "localjobid=", "config=", "debug", "quiet", "help"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -155,6 +158,8 @@ def getoptions():
             retdata['localjobid'] = opt[1]
         elif opt[0] in ("-d", "--debug"):
             retdata['log'] = logging.DEBUG
+        elif opt[0] == "--logfile":
+            retdata['logfile'] = opt[1]
         elif opt[0] in ("-q", "--quiet"):
             retdata['log'] = logging.ERROR
         elif opt[0] in ("-c", "--config"):
@@ -175,10 +180,7 @@ def main():
 
     options = getoptions()
 
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s',
-                        datefmt='%Y-%m-%dT%H:%M:%S',
-                        level=options['log'])
-    logging.captureWarnings(True)
+    setuplogger(options['log'], options['logfile'], logging.INFO)
 
     total_procs = options['nprocs'] * options['total_instances']
     start_offset = options['instance_id'] * options['nprocs']
