@@ -152,6 +152,10 @@ def gentimedata(j, indices, ignorelist, isevent):
             if metric in ignorelist:
                 continue
 
+            if metric not in indices:
+                logging.warning('%s not in index list for %s', metric, host.name)
+                continue
+
             for interface in indices[metric].keys() + ["all"]:
                 if metric not in hostdata:
                     hostdata[metric] = {}
