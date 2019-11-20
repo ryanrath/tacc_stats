@@ -675,7 +675,7 @@ class Job(object):
         if m > 0:
             rmsjitter = math.sqrt(rmsjitter) / m
             if rmsjitter > 60:
-                self.errors.add("high rmsjitter {} for host {}".format(rmsjitter, host.name))
+                self.errors.add("HRJ {} {}".format(host.name, type_name))
 
         # OK, we fit the raw values into A.  Now fixup rollover and
         # convert units.
