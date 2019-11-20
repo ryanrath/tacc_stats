@@ -401,6 +401,7 @@ def getinterfacestats(hoststats, metricname, interface, indices):
 
 def getperinterfacemetrics():
     return [ "cpu", "mem", "sched", "intel_pmc3", "intel_uncore", "intel_hsw", "intel_hsw_cbo", "intel_hsw_hau", "intel_hsw_imc", "intel_hsw_qpi", "intel_hsw_pcu", "intel_hsw_r2pci", "intel_snb", "intel_snb_cbo", "intel_snb_imc", "intel_snb_pcu", "intel_snb_hau", "intel_snb_qpi", "intel_snb_r2pci",
+             "cputhreads",
              "amd64_core",
              "amd64_sock",
              "intel_skx",
