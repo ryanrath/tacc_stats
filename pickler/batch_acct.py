@@ -386,7 +386,18 @@ class SLURMNative2Acct(SLURMNativeAcct):
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
   def fixuprecord(self, d):
-      pass
+    """ Try to handle case where the name field contains the delimiter character """
+    num_cols = len(d[None])
+    for cols in range(num_cols):
+      d['name'] = d['name'] + self.delimiter + d['status']
+      d['status'] = str(d['nodes'])
+      d['nodes'] = d['cores']
+      d['cores'] = d['node_list']
+      d['node_list'] = d[None][0]
+      del d[None][0]
+    d['nodes'] = int(d['nodes'])
+    d['cores'] = int(d['cores'])
+    del d[None]
 
   def postprocessrecord(self, d):
     mtch = self.jobarraydetect.match(d['id'])
