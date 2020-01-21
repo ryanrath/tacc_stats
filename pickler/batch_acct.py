@@ -12,6 +12,8 @@ def factory(kind, acct_file, host_name_ext='', resource=None, config=None):
     return SLURMAcct(acct_file,host_name_ext)
   elif kind == 'SLURMNative':
     return SLURMNativeAcct(acct_file,host_name_ext)
+  elif kind == 'OpenXDMoDSlurm':
+    return OpenXDMoDSlurm(acct_file, host_name_ext)
   elif kind == 'SLURMNative2':
     return SLURMNative2Acct(acct_file,host_name_ext, resource, config)
   elif kind == 'XDcDB':
@@ -334,6 +336,50 @@ class SLURMNativeAcct(BatchAcct):
           if len(a['host_list']) > 0:
             a['hostname'] = a['host_list'][0]
           yield a
+
+
+class OpenXDMoDSlurm(BatchAcct):
+  """ Process accounting data produced by the sacct command with the following """
+  """ flags. """
+  """ TZ=UTC sacct --clusters *cluster* --allusers \ """
+  """ --parsable2 --noheader --allocations --duplicates \ """
+  """ --format jobid,jobidraw,cluster,partition,account,group,gid,\ """
+  """          user,uid,submit,eligible,start,end,elapsed,exitcode,state,nnodes,\ """
+  """          ncpus,reqcpus,reqmem,reqgres,reqtres,timelimit,nodelist,jobname \ """
+  """  --state CANCELLED,COMPLETED,FAILED,NODE_FAIL,PREEMPTED,TIMEOUT"""
+  def __init__(self,acct_file,host_name_ext):
+
+    self.timeconverter = TimeFixer('UTC', True)
+
+    self.fields = (
+      ('id',                          str, 'Job identifier'),
+      ('id_raw',                      str, 'Raw Job Identifier'),
+      ('cluster',                     str, 'Job cluster'),
+      ('partition',                   str, 'Job partition'),
+      ('account',                     str, 'Job account'),
+      ('group',                       str, 'Group name of the job owner'),
+      ('gid',                         int, 'GID of the job owner'),
+      ('user',                        str, 'User that is running the job'),
+      ('uid',                         int, 'UID of the job owner'),
+      ('submit',                      self.timeconverter, 'Time the job was submitted'),
+      ('eligible',                    self.timeconverter, 'Time job was eligible to run (unix time stamp)'),
+      ('start_time',                  self.timeconverter, 'Time job started to run (unix time stamp)'),
+      ('end_time',                    self.timeconverter, 'Time job ended (unix time stamp)'),
+      ('elapsed',                     int, 'Time elapsed since start_time'),
+      ('exit_code',                   str, 'Exit code of job'),
+      ('exit_status',                 str, 'Exit status of the job'),
+      ('nodes',                       int, 'Number of nodes'),
+      ('ncpus',                       int, 'Number of cpus'),
+      ('reqcpus',                     int, 'Number of cores requested'),
+      ('reqmem',                      int, 'Amount of memory requested'),
+      ('reqgres',                     int, 'Amount of <gres> requested'),
+      ('reqtres',                     int, 'Amount of <tres> requested'),
+      ('timelimit',                   str, 'Assigned time limit'),
+      ('node_list',                   str, 'Nodes used in job'),
+      ('jobname',                     str, 'Job name')
+    )
+
+    BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
 class SLURMNative2Acct(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command used by tacc_stats """
