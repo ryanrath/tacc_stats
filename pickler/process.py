@@ -47,6 +47,54 @@ class RateCalculator:
     def rate(self):
         return self.rate
 
+
+def construct_host_list(acct):
+    """
+    When working with OpenXDMoD information we do not have a `host_list_dir` as the hosts are included in the slurm
+    accounting information as the `node_list` property. This property is provided in the form:
+    {
+        "node_list": "c105-[013-014,021-022,031-034,041,071-074,081]"
+    }
+    """
+    if 'node_list' not in acct:
+        return
+
+    hosts = []
+    node_list = acct['node_list']
+
+    # it's possible that there were no nodes assigned to the job
+    if 'None assigned' in node_list:
+        hosts.append('None assigned')
+        return hosts
+
+    # this covers the format: c105-[013-014,021-022,031-034,041,071-074,081]
+    if '[' in node_list and ']' in node_list:
+        left_bracket = node_list.find('[')
+        right_bracket = node_list.find(']')
+
+        # everything to the left of the left bracket is the host
+        host = node_list[:left_bracket - 1]
+
+        # everything between the brackets are the nodes
+        nodes = (node_list[left_bracket + 1:right_bracket]).split(',')
+
+        for node in nodes:
+
+            # if this is a range of nodes then we need to ensure there is one entry per value in the range.
+            if '-' in node:
+                delim_idx = node.find('-')
+                start = int(node[:delim_idx])
+                end = int(node[delim_idx + 1:])
+                for num in range(start, end + 1):
+                    hosts.append("%s-%s" % (host, num))
+            else:
+                hosts.append("%s-%s" % (host, node))
+    else:
+        hosts.append(node_list)
+
+    return hosts
+
+
 def createsummary(options, totalprocs, procid):
 
     procidstr = "%s of %s " % (procid, totalprocs) if totalprocs != None else ""
@@ -54,6 +102,8 @@ def createsummary(options, totalprocs, procid):
     logging.info("Processor " + procidstr + "starting")
 
     referencetime = int(time.time()) - ( 7 * 24 * 3600 ) 
+
+    is_open_xdmod = options['open_xdmod']
 
     config = account.getconfig(options['config'])
     dbconf = config['accountdatabase']
@@ -78,7 +128,7 @@ def createsummary(options, totalprocs, procid):
 
         bacct = batch_acct.factory(settings['batch_system'], settings['acct_path'], settings['host_name_ext'] )
 
-        if settings['lariat_path'] != "":
+        if 'lariat_path' in settings and settings['lariat_path'] != "":
             lariat = summarize.LariatManager(settings['lariat_path'])
         else:
             lariat = None
@@ -87,7 +137,8 @@ def createsummary(options, totalprocs, procid):
 
         for acct in dbreader.reader():
             logging.debug("%s local_job_id = %s", resourcename, acct['id'])
-            job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'], bacct )
+            acct['host_list'] = construct_host_list(acct)
+            job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'] if 'host_list_dir' in settings else None, bacct, is_open_xdmod)
             summary,timeseries = summarize.summarize(job, lariat)
 
             insertOk = outdb.insert(resourcename, summary, timeseries)
@@ -156,10 +207,11 @@ def getoptions():
         "logfile": None,
         "resource": None,
         "localjobid": None,
-        "config": None
+        "config": None,
+        "open_xdmod": False
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqho", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -174,6 +226,8 @@ def getoptions():
             retdata['log'] = logging.ERROR
         elif opt[0] in ("-c", "--config"):
             retdata['config'] = opt[1]
+        elif opt[0] in ("-o", "--openxdmod"):
+            retdata['open_xdmod'] = True
         elif opt[0] in ("-h", "--help"):
             usage()
             sys.exit(0)
