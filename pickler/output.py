@@ -39,6 +39,8 @@ class MongoOutput(object):
         except InvalidDocument as exc:
             logging.error("inserting summary document %s %s. %s",
                           resourcename, summary["_id"], str(exc))
+        except Exception as e:
+            logging.error("Unhandled Error %s", str(e))
 
         timeseriesOk = False
         if timeseries != None:
