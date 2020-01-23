@@ -15,6 +15,7 @@ import output
 import os
 
 from scripthelpers import setuplogger
+import hostlist
 
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
@@ -42,53 +43,6 @@ class RateCalculator:
 
     def rate(self):
         return self.rate
-
-
-def construct_host_list(acct):
-    """
-    When working with OpenXDMoD information we do not have a `host_list_dir` as the hosts are included in the slurm
-    accounting information as the `node_list` property. This property is provided in the form:
-    {
-        "node_list": "c105-[013-014,021-022,031-034,041,071-074,081]"
-    }
-    """
-    if 'node_list' not in acct:
-        return
-
-    hosts = []
-    node_list = acct['node_list']
-
-    # it's possible that there were no nodes assigned to the job
-    if 'None assigned' in node_list:
-        hosts.append('None assigned')
-        return hosts
-
-    # this covers the format: c105-[013-014,021-022,031-034,041,071-074,081]
-    if '[' in node_list and ']' in node_list:
-        left_bracket = node_list.find('[')
-        right_bracket = node_list.find(']')
-
-        # everything to the left of the left bracket is the host
-        host = node_list[:left_bracket - 1]
-
-        # everything between the brackets are the nodes
-        nodes = (node_list[left_bracket + 1:right_bracket]).split(',')
-
-        for node in nodes:
-
-            # if this is a range of nodes then we need to ensure there is one entry per value in the range.
-            if '-' in node:
-                delim_idx = node.find('-')
-                start = int(node[:delim_idx])
-                end = int(node[delim_idx + 1:])
-                for num in range(start, end + 1):
-                    hosts.append("%s-%s" % (host, num))
-            else:
-                hosts.append("%s-%s" % (host, node))
-    else:
-        hosts.append(node_list)
-
-    return hosts
 
 
 def createsummary(options, totalprocs, procid):
@@ -133,7 +87,7 @@ def createsummary(options, totalprocs, procid):
 
         for acct in dbreader.reader():
             logging.debug("%s local_job_id = %s", resourcename, acct['id'])
-            acct['host_list'] = construct_host_list(acct)
+            acct['host_list'] = hostlist.expand_hostlist(acct['node_list'])
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'] if 'host_list_dir' in settings else None, bacct, is_open_xdmod)
             summary,timeseries = summarize.summarize(job, lariat)
 
