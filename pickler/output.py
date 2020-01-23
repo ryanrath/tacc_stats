@@ -2,6 +2,7 @@
 """ job summary output """
 import json
 import logging
+from urllib import quote_plus
 from pymongo import MongoClient
 from pymongo.errors import InvalidDocument
 
@@ -26,7 +27,17 @@ class StdoutOutput(object):
 
 class MongoOutput(object):
     def __init__(self, dbconfig):
-        self.client = MongoClient(dbconfig['uri'])
+        if 'uri' in dbconfig:
+            uri = dbconfig['uri']
+        else:
+            uri = "mongodb://%s:%s@%s/%s?authSource=%s" % (
+                quote_plus(dbconfig['user']),
+                quote_plus(dbconfig['password']),
+                quote_plus(dbconfig['host']),
+                quote_plus(dbconfig['dbname']),
+                quote_plus(dbconfig['authSource'])
+            )
+        self.client = MongoClient(uri)
         self.db = self.client[dbconfig['dbname']]
 
     def insert(self, resourcename, summary, timeseries):
