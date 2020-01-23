@@ -844,34 +844,6 @@ class OpenXDMoDJob(Job):
 
     """
 
-    def get_stats_paths(self):
-        raw_host_stats_dir = os.path.join(self.raw_stats_dir, self.name+self.name_ext)
-        job_start = self.job.start_time - RAW_STATS_TIME_PAD
-        job_end = self.job.end_time + RAW_STATS_TIME_PAD
-        path_list = []
-        try:
-            for ent in os.listdir(raw_host_stats_dir):
-                base, dot, ext = ent.partition(".") if '.' in ent else (ent, '.', 'gz')
-                if not base.isdigit():
-                    continue
-                if ext != "gz":
-                    continue
-                # Support for filenames of the form %Y%m%d
-                if re.match('^[0-9]{4}[0-1][0-9][0-3][0-9]$', base):
-                    base = (datetime.datetime.strptime(base,"%Y%m%d") - datetime.datetime(1970,1,1)).total_seconds()
-                # Prune to files that might overlap with job.
-                ent_start = long(base)
-                ent_end = ent_start + 2*RAW_STATS_TIME_MAX
-                if ((ent_start <= job_start) and (job_start <= ent_end)) or ((ent_start <= job_end) and (job_end <= ent_end)) or (max(job_start, ent_start) <= min(job_end, ent_end)) :
-                    full_path = os.path.join(raw_host_stats_dir, ent)
-                    path_list.append((full_path, ent_start))
-                    self.trace("path `%s', start %d", full_path, ent_start)
-        except Exception as exc:
-            logging.error("get_stats_paths job %s. %s", self.job.id, exc)
-
-        path_list.sort(key=lambda tup: tup[1])
-        return path_list
-
     def gather_stats(self):
         host_list = []
 
@@ -903,6 +875,33 @@ class OpenXDMoDJob(Job):
 
 
 class OpenXDMoDHost(Host):
+    def get_stats_paths(self):
+        raw_host_stats_dir = os.path.join(self.raw_stats_dir, self.name+self.name_ext)
+        job_start = self.job.start_time - RAW_STATS_TIME_PAD
+        job_end = self.job.end_time + RAW_STATS_TIME_PAD
+        path_list = []
+        try:
+            for ent in os.listdir(raw_host_stats_dir):
+                base, dot, ext = ent.partition(".") if '.' in ent else (ent, '.', 'gz')
+                if not base.isdigit():
+                    continue
+                if ext != "gz":
+                    continue
+                # Support for filenames of the form %Y%m%d
+                if re.match('^[0-9]{4}[0-1][0-9][0-3][0-9]$', base):
+                    base = (datetime.datetime.strptime(base,"%Y%m%d") - datetime.datetime(1970,1,1)).total_seconds()
+                # Prune to files that might overlap with job.
+                ent_start = long(base)
+                ent_end = ent_start + 2*RAW_STATS_TIME_MAX
+                if ((ent_start <= job_start) and (job_start <= ent_end)) or ((ent_start <= job_end) and (job_end <= ent_end)) or (max(job_start, ent_start) <= min(job_end, ent_end)) :
+                    full_path = os.path.join(raw_host_stats_dir, ent)
+                    path_list.append((full_path, ent_start))
+                    self.trace("path `%s', start %d", full_path, ent_start)
+        except Exception as exc:
+            logging.error("get_stats_paths job %s. %s", self.job.id, exc)
+
+        path_list.sort(key=lambda tup: tup[1])
+        return path_list
 
     def gather_stats(self):
         path_list = self.get_stats_paths()
