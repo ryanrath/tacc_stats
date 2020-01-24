@@ -53,8 +53,6 @@ def createsummary(options, totalprocs, procid):
 
     referencetime = int(time.time()) - ( 7 * 24 * 3600 ) 
 
-    is_open_xdmod = options['open_xdmod']
-
     config = account.getconfig(options['config'])
     dbconf = config['accountdatabase']
 
@@ -88,7 +86,7 @@ def createsummary(options, totalprocs, procid):
         for acct in dbreader.reader():
             logging.debug("%s local_job_id = %s", resourcename, acct['id'])
             acct['host_list'] = hostlist.expand_hostlist(acct['node_list'])
-            job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'] if 'host_list_dir' in settings else None, bacct, is_open_xdmod)
+            job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'] if 'host_list_dir' in settings else None, bacct)
             summary,timeseries = summarize.summarize(job, lariat)
 
             insertOk = outdb.insert(resourcename, summary, timeseries)
@@ -155,7 +153,7 @@ def getoptions():
         "open_xdmod": False
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqho", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -170,8 +168,6 @@ def getoptions():
             retdata['log'] = logging.ERROR
         elif opt[0] in ("-c", "--config"):
             retdata['config'] = opt[1]
-        elif opt[0] in ("-o", "--openxdmod"):
-            retdata['open_xdmod'] = True
         elif opt[0] in ("-h", "--help"):
             usage()
             sys.exit(0)
