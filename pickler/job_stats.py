@@ -285,7 +285,7 @@ class Host(object):
         path_list = []
         try:
             for ent in os.listdir(raw_host_stats_dir):
-                base, dot, ext = ent.partition(".")
+                base, dot, ext = ent.partition(".") if '.' in ent else (ent, '.', 'gz')
                 if not base.isdigit():
                     continue
                 if ext != "gz":
@@ -528,7 +528,7 @@ class Host(object):
         # converted into numpy arrays below.
         for path, start_time in path_list:
             try:
-                with gzip.open(path) as file:
+                with gzip.open(path) if '.gz' in path else open(path) as file:
                     self.read_stats_file(file)
             except IOError as ioe:
                 self.error("read error for file %s", path)
@@ -823,15 +823,12 @@ class Job(object):
         return host_stats
 
 
-def from_acct(acct, stats_home, host_list_dir, batch_acct, open_xdmod=False):
+def from_acct(acct, stats_home, host_list_dir, batch_acct):
     """from_acct(acct, stats_home)
     Return a Job object constructed from the appropriate accounting data acct using
     stats_home as the base directory, running all required processing.
     """
-    if open_xdmod:
-        job = OpenXDMoDJob(acct, stats_home, host_list_dir, batch_acct)
-    else:
-        job = Job(acct, stats_home, host_list_dir, batch_acct)
+    job = Job(acct, stats_home, host_list_dir, batch_acct)
     job.gather_stats() and job.munge_times() and job.process_stats()
     return job
 
@@ -845,86 +842,3 @@ def from_id(id, **kwargs):
         return from_acct(acct)
     else:
         return None
-
-
-class OpenXDMoDJob(Job):
-    """
-
-    """
-
-    def gather_stats(self):
-        host_list = []
-
-        if "host_list" in self.acct:
-            host_list = self.acct['host_list']
-            if host_list == ["None assigned"]:
-                host_list = []
-
-        if len(host_list) == 0 and self.end_time - self.start_time > 0:
-            self.error("empty host list")
-            return False
-
-        for hidx, host_name in enumerate(host_list):
-            # TODO Keep bad_hosts.
-            try:
-                host_name = host_name.split('.')[0]
-            except:
-                pass
-
-            host = OpenXDMoDHost(self, host_name, self.stats_home + '/archive', self.batch_acct.name_ext, hidx == 0)
-
-            if host.gather_stats():
-                self.hosts[host_name] = host
-
-        if not self.hosts:
-            self.error("no good hosts")
-            return False
-        return True
-
-
-class OpenXDMoDHost(Host):
-    def get_stats_paths(self):
-        raw_host_stats_dir = os.path.join(self.raw_stats_dir, self.name+self.name_ext)
-        job_start = self.job.start_time - RAW_STATS_TIME_PAD
-        job_end = self.job.end_time + RAW_STATS_TIME_PAD
-        path_list = []
-        try:
-            for ent in os.listdir(raw_host_stats_dir):
-                base, dot, ext = ent.partition(".") if '.' in ent else (ent, '.', 'gz')
-                if not base.isdigit():
-                    continue
-                if ext != "gz":
-                    continue
-                # Support for filenames of the form %Y%m%d
-                if re.match('^[0-9]{4}[0-1][0-9][0-3][0-9]$', base):
-                    base = (datetime.datetime.strptime(base,"%Y%m%d") - datetime.datetime(1970,1,1)).total_seconds()
-                # Prune to files that might overlap with job.
-                ent_start = long(base)
-                ent_end = ent_start + 2*RAW_STATS_TIME_MAX
-                if ((ent_start <= job_start) and (job_start <= ent_end)) or ((ent_start <= job_end) and (job_end <= ent_end)) or (max(job_start, ent_start) <= min(job_end, ent_end)) :
-                    full_path = os.path.join(raw_host_stats_dir, ent)
-                    path_list.append((full_path, ent_start))
-                    self.trace("path `%s', start %d", full_path, ent_start)
-        except Exception as exc:
-            logging.error("get_stats_paths job %s. %s", self.job.id, exc)
-
-        path_list.sort(key=lambda tup: tup[1])
-        return path_list
-
-    def gather_stats(self):
-        path_list = self.get_stats_paths()
-        if len(path_list) == 0:
-            self.error("no stats files overlapping job")
-            return False
-
-        # read_stats_file() and parse_stats() append stats records
-        # into lists of tuples in self.raw_stats.  The lists will be
-        # converted into numpy arrays below.
-        for path, start_time in path_list:
-            try:
-                with open(path) as file:
-                    self.read_stats_file(file)
-            except IOError as ioe:
-                self.error("read error for file %s", path)
-
-        return self.raw_stats
