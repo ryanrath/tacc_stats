@@ -113,7 +113,11 @@ def gentimedata(j, indices, ignorelist, isevent):
             "intel_pmc3": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
-            }
+            },
+        "intel_8pmc3": {
+            "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+            "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
+        }
     }
 
     computed = {
@@ -436,36 +440,43 @@ def fix_unicode(value):
         return value
 
 
-def summarize(j, lariatcache):
+def summarize(job, lariatcache):
+    """
+
+    :param job:         The job to be summarized
+    :param lariatcache: If we're using lariat then this will be an instance of LariatManager else None.
+
+    :type job: job_stats.Job
+    :type lariatcache: LariatManager|None
+
+    :return: a tuple in the form: ( summary_data, timeseries_data )
+    """
 
     summaryDict = {}
-    summaryDict['Error'] = list(j.errors)
+    summaryDict['Error'] = list(job.errors)
     
     # TODO summarySchema = {}
 
     # The tacc_stats source data is assumed complete if we have records with end markers
     # for all hosts.
     hostswithends = 0
-    for h,v in j.hosts.iteritems():
+    for h,v in job.hosts.iteritems():
         for mark in v.marks.iterkeys():
             if mark.startswith("end"):
                 hostswithends += 1
 
-    if getnumhosts(j.acct) == hostswithends:
+    if getnumhosts(job.acct) == hostswithends:
         summaryDict['complete'] = True
     else:
-        if j.acct['end_time'] - j.acct['start_time'] > 0:
+        if job.acct['end_time'] - job.acct['start_time'] > 0:
             summaryDict['complete'] = False
         else:
             # Allow zero-length jobs to have no statistics
             summaryDict['complete'] = True
 
-    metrics = None
     statsOk = True
 
     perinterface = getperinterfacemetrics()
-
-    conglomerates = [ "irq" ]
 
     # The ib and ib_ext counters are known to be incorrect on all tacc_stats systems
     ignorelist = [ "ib", "ib_ext", "intel_knl_mc_dclk", "intel_knl_mc_uclk" ]
@@ -477,16 +488,16 @@ def summarize(j, lariatcache):
     # proc metrics are handled by dedicated proc code
     ignorelist.append("proc")
 
-    logging.debug("ID: %s", j.acct['id'])
+    logging.debug("ID: %s", job.acct['id'])
 
-    walltime = max(j.end_time - j.start_time, 0)
+    walltime = max(job.end_time - job.start_time, 0)
 
-    if len(j.times) == 0:
+    if len(job.times) == 0:
         summaryDict['Error'].append("No timestamp records")
         statsOk = False
 
-    if j.hosts.keys():
-        summaryDict['nHosts'] = len(j.hosts)
+    if job.hosts.keys():
+        summaryDict['nHosts'] = len(job.hosts)
     else:
         summaryDict['nHosts'] = 0
         summaryDict['Error'].append('No Host Data')
@@ -495,11 +506,11 @@ def summarize(j, lariatcache):
         summaryDict['Error'].append('Walltime is 0')
 
     metrics = {}
-    for t in j.schemas.keys():
+    for t in job.schemas.keys():
         metrics[t] = []
         if t == 'cpu':
             metrics[t].append('all')
-        for m in j.schemas[t]:
+        for m in job.schemas[t]:
             metrics[t].append(m)
 
     indices = {}
@@ -516,9 +527,9 @@ def summarize(j, lariatcache):
         enties[metricname] = {}
         for interface in metric:
             try:
-                if interface in j.get_schema(metricname):
-                    indices[metricname][interface] = j.get_schema(metricname)[interface].index
-                    isevent[metricname][interface] = j.get_schema(metricname)[interface].is_event
+                if interface in job.get_schema(metricname):
+                    indices[metricname][interface] = job.get_schema(metricname)[interface].index
+                    isevent[metricname][interface] = job.get_schema(metricname)[interface].is_event
             except:
                 logging.error("summary metric %s not in the schema", str(interface))
                 logging.error("%s", sys.exc_info()[0])
@@ -541,14 +552,14 @@ def summarize(j, lariatcache):
     tacc_version = []
     cpus_combined = False
 
-    for host in j.hosts.itervalues():  # for all the hosts present in the file
+    for host in job.hosts.itervalues():  # for all the hosts present in the file
         nHosts += 1
         nCoresPerSocket = 1
         hostwalltime = host.times[-1] - host.times[0]
 
         totaltimes.append(hostwalltime - walltime)
-        starttimes.append(host.times[0] - j.start_time)
-        endtimes.append(host.times[-1] - j.end_time)
+        starttimes.append(host.times[0] - job.start_time)
+        endtimes.append(host.times[-1] - job.end_time)
 
         if not host.tacc_version in tacc_version:
             tacc_version.append(host.tacc_version)
@@ -636,13 +647,13 @@ def summarize(j, lariatcache):
                     totals["cpu"]["all"].append( sum( 1.0 * host.stats[metricname][device][-1,:] / hostwalltime) )
 
                 elif metricname == "intel_snb" or metricname == "intel_hsw" or metricname == "intel_ivb":
-                    if metricname not in j.overflows:
+                    if metricname not in job.overflows:
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
                 elif metricname == "intel_knl" or metricname == "intel_skx":
-                    if metricname not in j.overflows:
+                    if metricname not in job.overflows:
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
 
@@ -651,8 +662,13 @@ def summarize(j, lariatcache):
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
+                elif metricname == "intel_8pmc3":
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
+
                 elif metricname == "intel_snb_imc" or metricname == "intel_skx_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
-                    if metricname not in j.overflows:
+                    if metricname not in job.overflows:
                         compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
 
                 elif metricname == "mem":
@@ -695,7 +711,7 @@ def summarize(j, lariatcache):
         summaryDict['Error'].append( "No CPU information" )
 
     if 'intel_knl' in totals and 'CLOCKS_UNHALTED_REF' in totals['intel_knl']:
-        if numpy.max(totals['intel_knl']['CLOCKS_UNHALTED_REF']) > (j.end_time - j.start_time)* 1.0e9 * 10:
+        if numpy.max(totals['intel_knl']['CLOCKS_UNHALTED_REF']) > (job.end_time - job.start_time)* 1.0e9 * 10:
             statsOk = False
             summaryDict['Error'].append( "Corrupt H/W counters")
 
@@ -726,17 +742,17 @@ def summarize(j, lariatcache):
                 if interface != "all":
                     ncdata = numpy.array(cdata) / totalcpus
                     v = calculate_stats(ncdata)
-                    addmetrics(summaryDict,j.overflows, "cpu", interface, v)
+                    addmetrics(summaryDict, job.overflows, "cpu", interface, v)
 
                     eff = calculate_stats(numpy.compress(effective, ncdata))
-                    addmetrics(summaryDict,j.overflows, "cpueff", interface, eff)
+                    addmetrics(summaryDict, job.overflows, "cpueff", interface, eff)
 
     timeseries = None
     timedata = None
     if statsOk:
         ttt = TimeSeriesSummary(cpus_combined)
-        timeseries = ttt.process(j,indices)
-        timedata = gentimedata(j, indices, ignorelist, isevent)
+        timeseries = ttt.process(job, indices)
+        timedata = gentimedata(job, indices, ignorelist, isevent)
 
     if statsOk:
         for mname, mdata in corederived.iteritems():
@@ -787,15 +803,15 @@ def summarize(j, lariatcache):
 
         del totals['cpu']
 
-        converttooutput(series, summaryDict, j)
-        converttooutput(totals, summaryDict, j)
+        converttooutput(series, summaryDict, job)
+        converttooutput(totals, summaryDict, job)
 
         summaryDict['analysis'] = {}
-        summaryDict['analysis']['catastrophe'] = compute_catastrophe(j)
+        summaryDict['analysis']['catastrophe'] = compute_catastrophe(job)
 
     # add in lariat data
     if lariatcache != None:
-        lariatdata = lariatcache.find(j.id, j.acct['start_time'], j.acct['end_time'])
+        lariatdata = lariatcache.find(job.id, job.acct['start_time'], job.acct['end_time'])
         if lariatdata != None:
             summaryDict['lariat'] = lariatdata
         else:
@@ -803,13 +819,13 @@ def summarize(j, lariatcache):
 
     # add hosts
     summaryDict['hosts'] = []
-    for i in j.hosts.keys():
+    for i in job.hosts.keys():
         summaryDict['hosts'].append(i.encode('ascii', 'ignore') if type(i) == unicode else i)
 
     summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
     # add account info from slurm accounting files
-    summaryDict['acct'] = fix_unicode(j.acct)
+    summaryDict['acct'] = fix_unicode(job.acct)
 
     # add schema outline
     if statsOk and not COMPACT_OUTPUT:
@@ -817,10 +833,10 @@ def summarize(j, lariatcache):
         try:
             for k in metrics:
                 for l in metrics[k]:
-                    if l in j.get_schema(k):
+                    if l in job.get_schema(k):
                         if k not in summaryDict['schema']:
                             summaryDict['schema'][k]={}
-                        summaryDict['schema'][k][l] = str( j.get_schema(k)[l] )
+                        summaryDict['schema'][k][l] = str(job.get_schema(k)[l])
         except:
             if (summaryDict['nHosts'] != 0):
                 logging.error('%s', sys.exc_info()[0])
@@ -830,12 +846,12 @@ def summarize(j, lariatcache):
     summaryDict['summary_version'] = SUMMARY_VERSION
     summaryDict['created'] = datetime.datetime.utcnow()
 
-    uniq = str( j.acct['local_jobid'] if 'local_jobid' in j.acct else j.acct['id'])
-    if 'cluster' in j.acct:
-        uniq += "-" + j.acct['cluster']
-    if 'job_array_index' in j.acct:
-        uniq += "-" + j.acct['job_array_index']
-    uniq += "-" + str(j.acct['end_time'])
+    uniq = str(job.acct['local_jobid'] if 'local_jobid' in job.acct else job.acct['id'])
+    if 'cluster' in job.acct:
+        uniq += "-" + job.acct['cluster']
+    if 'job_array_index' in job.acct:
+        uniq += "-" + job.acct['job_array_index']
+    uniq += "-" + str(job.acct['end_time'])
 
     summaryDict['_id'] = uniq
 
@@ -844,7 +860,7 @@ def summarize(j, lariatcache):
 
     # Process procDump information from the tacc_stats file itself
     taccproc = TaccProcDump()
-    pl = taccproc.getproclist(j, int(j.acct['uid']) if 'uid' in j.acct and (isinstance(j.acct['uid'], (int, long)) or j.acct['uid'].isdigit()) else None)
+    pl = taccproc.getproclist(job, int(job.acct['uid']) if 'uid' in job.acct and (isinstance(job.acct['uid'], (int, long)) or job.acct['uid'].isdigit()) else None)
 
     if len(pl) > 0:
         summaryDict['procDump'] = pl

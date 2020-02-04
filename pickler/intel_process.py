@@ -101,27 +101,31 @@ hau_event_map = {
 ## Integrated Memory events
 def IMC_PERF_EVENT(event, umask):
     return (event) | (umask << 8) | (0L << 18) | (1L << 22) | (0L <<23) | (1L << 24)
+def IMC_PERF_EVENT_SKX(event, umask):
+    return (event) | (umask << 8) | (0 << 18) | (1 << 22) | (0 <<23) | (0 << 24)
 ## Integrated Memory Controller map
 imc_event_map = {
     IMC_PERF_EVENT(0x04, 0x03) : 'CAS_READS,E',
     IMC_PERF_EVENT(0x04, 0x0C) : 'CAS_WRITES,E',
     IMC_PERF_EVENT(0x01, 0x00) : 'ACT_COUNT,E',
     IMC_PERF_EVENT(0x01, 0x11) : 'ACT_COUNT,E',
-    IMC_PERF_EVENT(0x02, 0x03) : 'PRE_COUNT_ALL,E',              
+    IMC_PERF_EVENT_SKX(0x01, 0x0B) : 'ACT_COUNT,E',
+    IMC_PERF_EVENT_SKX(0x04, 0x03) : 'CAS_READS,E',
+    IMC_PERF_EVENT_SKX(0x04, 0x0C) : 'CAS_WRITES,E',
+    IMC_PERF_EVENT_SKX(0x02, 0x01) : 'PRE_COUNT_MISS,E',
+    IMC_PERF_EVENT(0x02, 0x03) : 'PRE_COUNT_ALL,E',
     IMC_PERF_EVENT(0x02, 0x01) : 'PRE_COUNT_MISS,E',              
     'FIXED0'                   : 'CYCLES,E',
     }
 
-def SKX_IMC_PERF_EVENT(event, umask):
-    return (event) | (umask << 8) | (0L << 18) | (1L << 22) | (0L <<23) | (0L << 24)
-skx_imc_event_map = {
-    SKX_IMC_PERF_EVENT(0x04, 0x03) : 'CAS_READS,E',
-    SKX_IMC_PERF_EVENT(0x04, 0x0C) : 'CAS_WRITES,E',
-    SKX_IMC_PERF_EVENT(0x01, 0x0B) : 'ACT_COUNT,E',
-    SKX_IMC_PERF_EVENT(0x02, 0x03) : 'PRE_COUNT_ALL,E',
-    SKX_IMC_PERF_EVENT(0x02, 0x01) : 'PRE_COUNT_MISS,E',
-    'FIXED0'                   : 'CYCLES,E',
-    }
+## Caching Home Agent Map for SKX
+cha_event_map = {
+    0x0040073d : "SF_EVICTIONS_MES,E",
+    0x00403334 : "LLC_LOOKUP_DATA_READ_LOCAL,E",
+    0x00400757 : "BYPASS_CHA_IMC_ALL,E",
+    0x00400534 : "LLC_LOOKUP_WRITE"
+}
+
 
 ## Power Control Unit events
 def PCU_PERF_EVENT(event):
@@ -341,8 +345,11 @@ intel_xeon = {'intel_snb' : cpu_event_map, 'intel_snb_cbo' : cbo_event_map, 'int
               'intel_hsw_imc' : imc_event_map,  'intel_hsw_qpi' : qpi_event_map, 'intel_hsw_pcu' : pcu_event_map, 'intel_hsw_r2pci' : r2pci_event_map,
               'intel_hsw_ht' : cpu_event_map, 'intel_hsw_cbo_ht' : cbo_event_map,
               'intel_skx' : cpu_event_map,
-              'intel_skx_imc' : skx_imc_event_map,
-              'intel_knl' : cpu_event_map
+              'intel_skx_imc' : imc_event_map,
+              'intel_knl' : cpu_event_map,
+              'intel_8pmc3': cpu_event_map,
+              'intel_4pmc3': cpu_event_map,
+              'intel_skx_cha': cha_event_map
 }
 
 def format_knl(job, typename):
@@ -393,7 +400,7 @@ def format_knl(job, typename):
 
 def process_job(job):
 
-    # These events work for SNB,IVB,HSW at this time 2015/05/27
+    # These events work for SNB,IVB,HSW,BDW,SKX at this time 2015/05/27
     for device, mapping in intel_xeon.iteritems():
         if device in job.schemas:
             d = reformat_counters(job, device, mapping)
