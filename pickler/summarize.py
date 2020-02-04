@@ -113,7 +113,11 @@ def gentimedata(j, indices, ignorelist, isevent):
             "intel_pmc3": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
-            }
+            },
+        "intel_8pmc3": {
+            "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+            "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
+        }
     }
 
     computed = {
@@ -645,6 +649,11 @@ def summarize(j, lariatcache):
                         compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
 
                 elif metricname == "intel_pmc3":
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
+
+                elif metricname == "intel_8pmc3":
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
