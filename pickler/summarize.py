@@ -662,6 +662,11 @@ def summarize(job, lariatcache):
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'MEM_LOAD_RETIRED_L1D_HIT', corederived["cpldref"])
 
+                elif metricname == "intel_4pmc3" or metricname == 'intel_8pmc3':
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
+                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
+
                 elif metricname == "intel_snb_imc" or metricname == "intel_skx_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
                     if metricname not in job.overflows:
                         compute_sum(host.stats[metricname][device], indices[metricname], 'CAS_READS', 'CAS_WRITES', socketderived["membw"], hostwalltime / 64.0 )
