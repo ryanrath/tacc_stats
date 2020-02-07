@@ -420,7 +420,9 @@ def getperinterfacemetrics():
                      "intel_ivb_hau",
                      "intel_ivb_imc",
                      "intel_ivb_pcu",
-                     "intel_ivb_r2pci"]
+                     "intel_ivb_r2pci",
+             "intel_8pmc3",
+             "intel_4pmc3"]
 
 
 def fix_unicode(value):
