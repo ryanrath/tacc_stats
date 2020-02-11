@@ -149,8 +149,7 @@ def getoptions():
         "logfile": None,
         "resource": None,
         "localjobid": None,
-        "config": None,
-        "open_xdmod": False
+        "config": None
     }
 
     opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
