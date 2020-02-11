@@ -152,7 +152,7 @@ def getoptions():
         "config": None
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
