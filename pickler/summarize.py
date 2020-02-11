@@ -667,7 +667,6 @@ def summarize(job, lariatcache):
                 elif metricname == "intel_4pmc3" or metricname == 'intel_8pmc3':
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_CORE', 'INSTRUCTIONS_RETIRED', corederived["cpicore"])
                     compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'INSTRUCTIONS_RETIRED', corederived["cpiref"])
-                    compute_ratio(host.stats[metricname][device], indices[metricname], 'CLOCKS_UNHALTED_REF', 'LOAD_L1D_ALL', corederived["cpldref"])
 
                 elif metricname == "intel_snb_imc" or metricname == "intel_skx_imc" or metricname == "intel_hsw_imc" or metricname == "intel_ivb_imc" or metricname == "intel_knl_mc_dclk":
                     if metricname not in job.overflows:
@@ -789,6 +788,45 @@ def summarize(job, lariatcache):
 
         # TODO Nehalem/Westmere flops
 
+        # New Cascade Lake flop calculations
+        if 'intel_8pmc3' in totals.keys():
+            flops = single_flops = double_flops = 0.0
+            if 'FP_ARITH_INST_RETIRED_SCALAR_DOUBLE' in totals['intel_8pmc3']:
+                value = (numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_DOUBLE']))
+                flops += value
+                double_flops += value
+            if 'FP_ARITH_INST_RETIRED_SCALAR_SINGLE' in totals['intel_8pmc3']:
+                value = (numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_SINGLE']))
+                flops += value
+                single_flops += value
+            if 'FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE' in totals['intel_8pmc3']:
+                value = (2.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE']))
+                flops += value
+                double_flops += value
+            if 'FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE' in totals['intel_8pmc3']:
+                value = (4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE']))
+                flops += value
+                single_flops += value
+            if 'FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE' in totals['intel_8pmc3']:
+                value = (4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE']))
+                flops += value
+                double_flops += value
+            if 'FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE' in totals['intel_8pmc3']:
+                value = (8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE']))
+                flops += value
+                single_flops += value
+            if 'FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE' in totals['intel_8pmc3']:
+                value = (8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE']))
+                flops += value
+                double_flops += value
+            if 'FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE' in totals['intel_8pmc3']:
+                value = (16.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE']))
+                flops += value
+                single_flops += value
+
+            summaryDict['FLOPS'] = calculate_stats(flops)
+            summaryDict['FLOPS_SINGLE'] = calculate_stats(single_flops)
+            summaryDict['FLOPS_DOUBLE'] = calculate_stats(double_flops)
 
         # TODO - make this stuff configurable
         if 'lnet' in totals.keys() and 'rx_bytes' in totals['lnet'] and '-' in totals['lnet']["rx_bytes"]:
@@ -802,6 +840,8 @@ def summarize(job, lariatcache):
                         summaryDict['mpirx'] = calculate_stats(mpitraff);
                 else:
                     summaryDict['mpirx'] = { 'error': 2, 'error_msg': 'missing ib_sw or lnet data points' }
+
+
 
         del totals['cpu']
 
