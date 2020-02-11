@@ -426,6 +426,12 @@ def getperinterfacemetrics():
 
 
 def fix_unicode(value):
+    """
+    This function helps convert a given value, recursively, from unicode to ascii.
+
+    :param value:
+    :return:
+    """
     if type(value) == unicode:
         return value.encode('ascii', 'ignore')
     elif type(value) == dict:
