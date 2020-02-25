@@ -82,18 +82,18 @@ def addtoseries(interface, series, enties, data):
 def gentimedata(j, indices, ignorelist, isevent):
 
     # Do the special derived metrics:
-    derived = { 
-            "intel_snb": { 
+    derived = {
+            "intel_snb": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
-                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ]
             },
-            "intel_hsw": { 
+            "intel_hsw": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
-                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ]
             },
             "intel_ivb": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
@@ -114,10 +114,10 @@ def gentimedata(j, indices, ignorelist, isevent):
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
             },
-        "intel_8pmc3": {
-            "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
-            "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
-        }
+            "intel_8pmc3": {
+                "meancpiref":  [ "numpy.nan_to_num(numpy.diff(a[0])/numpy.diff(a[1]))", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
+                "meancpldref": [ "numpy.nan_to_num(numpy.diff(a[0])/numpy.diff(a[1]))", "CLOCKS_UNHALTED_REF", "MEM_LOAD_RETIRED_L1D_HIT" ],
+            }
     }
 
     computed = {
@@ -194,9 +194,9 @@ def gentimedata(j, indices, ignorelist, isevent):
             if '.' in i:
                 continue
             if m == "cpu":
-                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(hostdata[m]["all"]) )
+                results[m][i] = calculate_stats( numpy.nan_to_num(numpy.diff(a) / numpy.diff(hostdata[m]["all"])) )
             elif isevent[m][i]:
-                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(times) )
+                results[m][i] = calculate_stats( numpy.nan_to_num( numpy.diff(a) / numpy.diff(times) ))
             else:
                 results[m][i] = calculate_stats( a )
 
@@ -341,7 +341,7 @@ def addinstmetrics(summary, overflows, device, interface, instance, values):
 
     if device in overflows and interface in overflows[device] and instance in overflows[device][interface]:
         data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(list(overflows[device][interface][instance])) }
-    
+
     if device not in summary:
         summary[device.replace(".","-")] = {}
     if interface not in summary[device]:
@@ -361,7 +361,7 @@ def addmetrics(summary, overflows, device, interface, values):
         # impacts all cpu metrics.
         if (device == "cpu") or ( interface in overflows[device]):
             data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(overflows[device]) }
-    
+
     if device not in summary:
         summary[device.replace(".","-")] = {}
 
@@ -462,7 +462,7 @@ def summarize(job, lariatcache):
 
     summaryDict = {}
     summaryDict['Error'] = list(job.errors)
-    
+
     # TODO summarySchema = {}
 
     # The tacc_stats source data is assumed complete if we have records with end markers
@@ -578,7 +578,7 @@ def summarize(job, lariatcache):
         if hostwalltime < MINTIMEDELTA:
             summaryDict['Error'].append("Insufficient data points for host {}. {}".format(host.name, host.times) )
             continue
-        
+
         if 'cpu' in host.stats.keys() and 'mem' \
           in host.stats.keys():
             nCoresPerSocket = len(host.stats['cpu']) \
@@ -616,7 +616,7 @@ def summarize(job, lariatcache):
                                 totals[metricname][interface] = {}
                             if device not in totals[metricname][interface]:
                                 totals[metricname][interface][device] = []
-                            
+
                             totals[metricname][interface][device].append( host.stats[metricname][device][-1,index] / hostwalltime  )
                     else:
                         # Instantaneous metrics have all timeseries values processed except
@@ -830,7 +830,6 @@ def summarize(job, lariatcache):
                 value = 16.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE'])
                 flops = value if flops is None else numpy.add(flops, value)
                 single_flops = value if single_flops is None else numpy.add(single_flops, value)
-
             summaryDict['FLOPS'] = calculate_stats(flops)
             summaryDict['FLOPS_SINGLE'] = calculate_stats(single_flops)
             summaryDict['FLOPS_DOUBLE'] = calculate_stats(double_flops)
@@ -921,7 +920,7 @@ def summarize(job, lariatcache):
         timeseries['_id'] = uniq
 
     if timedata != None:
-        summaryDict['timedata'] = timedata 
+        summaryDict['timedata'] = timedata
 
     return (summaryDict, timeseries)
 
