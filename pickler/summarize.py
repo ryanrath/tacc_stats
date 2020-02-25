@@ -194,9 +194,9 @@ def gentimedata(j, indices, ignorelist, isevent):
             if '.' in i:
                 continue
             if m == "cpu":
-                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(hostdata[m]["all"]) )
+                results[m][i] = calculate_stats( numpy.nan_to_num(numpy.diff(a) / numpy.diff(hostdata[m]["all"])) )
             elif isevent[m][i]:
-                results[m][i] = calculate_stats( numpy.diff(a) / numpy.diff(times) )
+                results[m][i] = calculate_stats( numpy.nan_to_num( numpy.diff(a) / numpy.diff(times) ))
             else:
                 results[m][i] = calculate_stats( a )
 
