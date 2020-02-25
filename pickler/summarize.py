@@ -796,39 +796,40 @@ def summarize(job, lariatcache):
 
         # New Cascade Lake flop calculations
         if 'intel_8pmc3' in totals.keys():
-            flops = single_flops = double_flops = 0.0
+            flops = None
+            single_flops = None
+            double_flops = None
             if 'FP_ARITH_INST_RETIRED_SCALAR_DOUBLE' in totals['intel_8pmc3']:
-                value = (numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_DOUBLE']))
-                flops += value
-                double_flops += value
+                value = numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_DOUBLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                double_flops = value if double_flops is None else numpy.add(double_flops, value)
             if 'FP_ARITH_INST_RETIRED_SCALAR_SINGLE' in totals['intel_8pmc3']:
-                value = (numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_SINGLE']))
-                flops += value
-                single_flops += value
+                value = numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_SCALAR_SINGLE'])
+                single_flops = value if single_flops is None else numpy.add(single_flops, value)
             if 'FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE' in totals['intel_8pmc3']:
-                value = (2.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE']))
-                flops += value
-                double_flops += value
+                value = 2.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                double_flops = value if double_flops is None else numpy.add(double_flops, value)
             if 'FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE' in totals['intel_8pmc3']:
-                value = (4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE']))
-                flops += value
-                single_flops += value
+                value = 4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                single_flops = value if single_flops is None else numpy.add(single_flops, value)
             if 'FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE' in totals['intel_8pmc3']:
-                value = (4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE']))
-                flops += value
-                double_flops += value
+                value = 4.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                double_flops = value if double_flops is None else numpy.add(double_flops, value)
             if 'FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE' in totals['intel_8pmc3']:
-                value = (8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE']))
-                flops += value
-                single_flops += value
+                value = 8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                single_flops = value if single_flops is None else numpy.add(single_flops, value)
             if 'FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE' in totals['intel_8pmc3']:
-                value = (8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE']))
-                flops += value
-                double_flops += value
+                value = 8.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                double_flops = value if double_flops is None else numpy.add(double_flops, value)
             if 'FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE' in totals['intel_8pmc3']:
-                value = (16.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE']))
-                flops += value
-                single_flops += value
+                value = 16.0 * numpy.array(totals['intel_8pmc3']['FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE'])
+                flops = value if flops is None else numpy.add(flops, value)
+                single_flops = value if single_flops is None else numpy.add(single_flops, value)
 
             summaryDict['FLOPS'] = calculate_stats(flops)
             summaryDict['FLOPS_SINGLE'] = calculate_stats(single_flops)
