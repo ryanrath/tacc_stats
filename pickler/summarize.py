@@ -422,7 +422,7 @@ def getperinterfacemetrics():
                      "intel_ivb_pcu",
                      "intel_ivb_r2pci",
              "intel_8pmc3",
-             "intel_4pmc3"
+             "intel_4pmc3",
              "intel_skx_cha"]
 
 
