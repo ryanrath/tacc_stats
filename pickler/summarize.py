@@ -426,29 +426,6 @@ def getperinterfacemetrics():
              "intel_skx_cha"]
 
 
-def fix_unicode(value):
-    """
-    This function helps convert a given value, recursively, from unicode to ascii.
-
-    :param value:
-    :return:
-    """
-    if type(value) == unicode:
-        return value.encode('ascii', 'ignore')
-    elif type(value) == dict:
-        temp = {}
-        for k, v in value.iteritems():
-            temp[k.encode('ascii', 'ignore')] = fix_unicode(v)
-        return temp
-    elif type(value) == list:
-        temp = []
-        for i in value:
-            temp.append(fix_unicode(i))
-        return temp
-    else:
-        return value
-
-
 def summarize(job, lariatcache):
     """
 
@@ -869,12 +846,12 @@ def summarize(job, lariatcache):
     # add hosts
     summaryDict['hosts'] = []
     for i in job.hosts.keys():
-        summaryDict['hosts'].append(i.encode('ascii', 'ignore') if type(i) == unicode else i)
+        summaryDict['hosts'].append(i)
 
     summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
     # add account info from slurm accounting files
-    summaryDict['acct'] = fix_unicode(job.acct)
+    summaryDict['acct'] = job.acct
 
     # add schema outline
     if statsOk and not COMPACT_OUTPUT:
