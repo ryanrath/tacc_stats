@@ -4242,5 +4242,4366 @@ summarydef.definitions.maxmemminus = {
     "unit": "ratio"
 };
 
-db.schema.update({_id: summarydef._id}, summarydef, {upsert: true})
+summaryDef0938 = {
+    "_id" : "summary-0.9.38",
+    "summary_version" : "0.9.38",
+    "definitions" : {
+        "maxmemminus" : {
+            "unit" : "ratio",
+            "type" : "instant",
+            "documentation" : "The maximum ratio of memory used to memory available for the nodes that were assigned to the job. The memory used value does not include the memory usage from the kernel page and slab caches. The memory statistics are obtained from the /sys/devices/system/node/node*/numastat file."
+        },
+        "maxmem" : {
+            "unit" : "ratio",
+            "type" : "instant",
+            "documentation" : "The maximum ratio of memory used to memory available for the nodes that were assigned to the job. Memory used value is obtained from the MemUsed statistic from the /sys/devices/system/node/node*/numastat file."
+        },
+        "numa" : {
+            "*" : {
+                "numa_hit" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                },
+                "numa_foreign" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                },
+                "other_node" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                },
+                "numa_miss" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                },
+                "interleave_hit" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                },
+                "local_node" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/devices/system/node/node*/numastat",
+                    "source" : {
+                        "name" : "/sys/devices/system/node/node*/numastat",
+                        "type" : "sysfs"
+                    }
+                }
+            }
+        },
+        "block" : {
+            "*" : {
+                "rd_ios" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "rd_sectors" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "io_ticks" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "wr_ticks" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "rd_merges" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "wr_merges" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "rd_ticks" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "in_flight" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "wr_sectors" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "wr_ios" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                },
+                "time_in_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/block/*/stat",
+                    "source" : {
+                        "name" : "/sys/block/*/stat",
+                        "type" : "sysfs"
+                    }
+                }
+            }
+        },
+        "cpuall" : {
+            "unit" : "%",
+            "type" : "rate",
+            "documentation" : "The total recorded CPU core clock ticks per unit time expressed as a percentage. This value should by very close to 100 percent. Discrepencies in this value are typically due to data errors in the monitoring software rather than the problems with the HPC job."
+        },
+        "cpueff" : {
+            "nice" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "irq" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "user" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "idle" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "system" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "iowait" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "softirq" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            }
+        },
+        "cpu" : {
+            "nice" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "irq" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "user" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "idle" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "system" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "iowait" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            },
+            "softirq" : {
+                "unit" : "cs/s",
+                "type" : "rate",
+                "documentation" : "procfs metric read from /proc/stat",
+                "source" : {
+                    "name" : "/proc/stat",
+                    "type" : "procfs"
+                }
+            }
+        },
+        "vfs" : {
+            "*" : {
+                "file_use" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/sys/fs/inode-state",
+                    "source" : {
+                        "name" : "/proc/sys/fs/inode-state",
+                        "type" : "procfs"
+                    }
+                },
+                "dentry_use" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/sys/fs/dentry-state",
+                    "source" : {
+                        "name" : "/proc/sys/fs/dentry-state",
+                        "type" : "procfs"
+                    }
+                },
+                "inode_use" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/sys/fs/inode-state",
+                    "source" : {
+                        "name" : "/proc/sys/fs/inode-state",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "mpirx" : {
+            "unit" : "B/s",
+            "type" : "rate",
+            "documentation" : "Estimate of the average rate of MPI data received per node over the InfiniBand interface. The estimate is calculated by subtracting the parallel filesystem data from the total InfiniBand data (for the compute resources that use the InfiniBand interconnect for parallel filesystem data)."
+        },
+        "membw" : {
+            "unit" : "B/s",
+            "type" : "rate",
+            "documentation" : "Average rate of data transferred to and from main memory per CPU socket."
+        },
+        "intel_ivb_hau" : {
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_ivb" : {
+            "LOAD_OPS_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_LLC_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L1_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_PACKED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_L1D_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_CORE" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_REF" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_SCALAR" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SIMD_DOUBLE_256" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "INSTRUCTIONS_RETIRED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L2_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "nfs" : {
+            "*" : {
+                "FSSTAT_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_updatepage" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "short_write" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_open" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "delay" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "extend_write" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_writepages" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "xprt_bklog_u" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_lookup" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_lock" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_getdents" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "dentry_revalidate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "normal_read" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "xprt_req_u" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "write_page" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "silly_rename" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "xprt_bad_xids" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "direct_write" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "xprt_sends" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "direct_read" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_writepage" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "read_page" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "setattr_trunc" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "congestion_wait" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "normal_write" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_fsync" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_setattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "inode_revalidate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_readpages" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "server_write" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_access" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "server_read" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_flush" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "xprt_recvs" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READLINK_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "WRITE_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_bytes_sent" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "PATHCONF_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "REMOVE_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSSTAT_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "short_read" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_readpage" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READ_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "FSINFO_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "vfs_release" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "CREATE_queue" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RMDIR_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SETATTR_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "RENAME_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "GETATTR_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIR_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "COMMIT_rtt" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "ACCESS_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKDIR_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_ntrans" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "attr_invalidate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_execute" : {
+                    "unit" : "ms/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LOOKUP_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "READDIRPLUS_ops" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "SYMLINK_bytes_recv" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "LINK_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "data_invalidate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                },
+                "MKNOD_timeouts" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/self/mountstats",
+                    "source" : {
+                        "name" : "/proc/self/mountstats",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "sysv_shm" : {
+            "*" : {
+                "segs_used" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/sysvipc/shm",
+                    "source" : {
+                        "name" : "/proc/sysvipc/shm",
+                        "type" : "procfs"
+                    }
+                },
+                "mem_used" : {
+                    "unit" : "B",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/sysvipc/shm",
+                    "source" : {
+                        "name" : "/proc/sysvipc/shm",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "intel_ivb_cbo" : {
+            "COUNTER0_OCCUPANCY" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LLC_LOOKUP_DATA_READ" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "RING_IV_USED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LLC_LOOKUP_WRITE" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "ib_ext" : {
+            "*" : {
+                "port_rcv_data" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "port_xmit_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_xmit_data" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "port_multicast_xmit_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_unicast_rcv_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_multicast_rcv_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_unicast_xmit_pkts" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "intel_snb_qpi" : {
+            "G2_NCB_DATA" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "TxL_FLITS_G1_HOM" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "TxL_FLITS_G1_SNP" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "G1_DRS_DATA" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_ivb_pcu" : {
+            "MAX_POWER_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MAX_TEMP_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MIN_IO_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MIN_SNOOP_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "C6_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "C3_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_snb" : {
+            "LOAD_OPS_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_LLC_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L1_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_PACKED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_L1D_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_CORE" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_REF" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_SCALAR" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SIMD_DOUBLE_256" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "INSTRUCTIONS_RETIRED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L2_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "lnet" : {
+            "*" : {
+                "tx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                },
+                "rx_msgs_dropped" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                },
+                "rx_msgs" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                },
+                "tx_msgs" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                },
+                "rx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                },
+                "rx_bytes_dropped" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/sys/lnet/stats",
+                    "source" : {
+                        "name" : "/proc/sys/lnet/stats",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "FLOPS" : {
+            "unit" : "ops/s",
+            "type" : "rate",
+            "documentation" : "Generated from the available FLOPS hardware counters present on the cores"
+        },
+        "FLOPS_SINGLE": {
+            "unit": "op/s",
+            "type": "rate",
+            "documentation": "Generated from the available Single Width FLOP hardware counters present on the cores"
+        },
+        "FLOPS_DOUBLE": {
+            "unit": "op/s",
+            "type": "rate",
+            "documentation": "Generated from the available Double Width FLOP hardware counters present on the cores"
+        },
+        "intel_8pmc3": {
+            "FP_ARITH_INST_RETIRED_SCALAR_DOUBLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of scalar double precision floating point instructions retired. Each count represents 1 computation."
+            },
+            "FP_ARITH_INST_RETIRED_SCALAR_SINGLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of scalar  single precision floating point instructions retired. Each count represents 1 computation."
+            },
+            "FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 128-bit packed double precision floating point instructions retired. Each count represents 2 computations."
+            },
+            "FP_ARITH_INST_RETIRED_128B_PACKED_SINGLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 128-bit single precision floating point instructions retired. Each count represents 4 computations."
+            },
+            "FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 256-bit double precision floating point instructions retired. Each count represents 4 computations."
+            },
+            "FP_ARITH_INST_RETIRED_256B_PACKED_SINGLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 256-bit single precision floating point instructions retired. Each count represents 8 computations."
+            },
+            "FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 512-bit double precision floating point instructions retired. Each count represents 8 computations."
+            },
+            "FP_ARITH_INST_RETIRED_512B_PACKED_SINGLE": {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "Number of 512-bit single precision floating point instructions retired. Each count represents 16 computations."
+            },
+            "CLOCKS_UNHALTED_REF": {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_CORE": {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "INSTRUCTIONS_RETIRED": {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_skx_cha": {
+            "LLC_LOOKUP_WRITE": {
+                "unit": "",
+                "type": "instant"
+            },
+            "LLC_LOOKUP_DATA_READ_LOCAL": {
+                "unit": "",
+                "type": "instant"
+            },
+            "SF_EVICTIONS_MES": {
+                "unit": "",
+                "type": "instant"
+            },
+            "BYPASS_CHA_IMC_ALL": {
+                "unit": "",
+                "type": "instant"
+            }
+        },
+        "intel_skx_imc": {
+            "CAS_READS": {
+                "unit": "",
+                "type": "instant"
+            },
+            "CAS_WRITES": {
+                "unit": "",
+                "type" :"instant"
+            },
+            "ACT_COUNT": {
+                "unit": "",
+                "type": "instant"
+            },
+            "PRE_COUNT_MISS": {
+                "unit": "",
+                "type": "instant"
+            }
+        },
+        "tmpfs" : {
+            "*" : {
+                "files_used" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "syscall metric read from statfs",
+                    "source" : {
+                        "name" : "statfs",
+                        "type" : "syscall"
+                    }
+                },
+                "bytes_used" : {
+                    "unit" : "B",
+                    "type" : "instant",
+                    "documentation" : "syscall metric read from statfs",
+                    "source" : {
+                        "name" : "statfs",
+                        "type" : "syscall"
+                    }
+                }
+            }
+        },
+        "intel_rapl" : {
+            "*" : {
+                "MSR_DRAM_ENERGY_STATUS" : {
+                    "unit" : "mJ/s",
+                    "type" : "rate"
+                },
+                "MSR_PKG_ENERGY_STATUS" : {
+                    "unit" : "mJ/s",
+                    "type" : "rate"
+                },
+                "MSR_PP0_ENERGY_STATUS" : {
+                    "unit" : "mJ/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "intel_nhm" : {
+            "*" : {
+                "4391249" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4392145" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391377" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "CLOCKS_UNHALTED_REF" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "INSTRUCTIONS_RETIRED" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "4395024" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "CLOCKS_UNHALTED_CORE" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "4423696" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391441" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391633" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4424144" : {
+                    "unit" : "",
+                    "type" : "instant"
+                }
+            }
+        },
+        "intel_hsw_r2pci" : {
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_snb_hau" : {
+            "IMC_WRITES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "WRITE_REQUESTS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKTICKS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "READ_REQUESTS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_snb_pcu" : {
+            "MAX_POWER_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MAX_TEMP_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MIN_IO_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "MIN_SNOOP_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "C6_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "C3_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_hsw_imc" : {
+            "FIXED_CTR" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_snb_imc" : {
+            "CAS_WRITES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PRE_COUNT_MISS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "ACT_COUNT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CAS_READS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "ps" : {
+            "*" : {
+                "nr_running" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/loadavg",
+                    "source" : {
+                        "name" : "/proc/loadavg",
+                        "type" : "procfs"
+                    }
+                },
+                "ctxt" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/stat",
+                    "source" : {
+                        "name" : "/proc/stat",
+                        "type" : "procfs"
+                    }
+                },
+                "nr_threads" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/loadavg",
+                    "source" : {
+                        "name" : "/proc/loadavg",
+                        "type" : "procfs"
+                    }
+                },
+                "load_15" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/loadavg",
+                    "source" : {
+                        "name" : "/proc/loadavg",
+                        "type" : "procfs"
+                    }
+                },
+                "load_1" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/loadavg",
+                    "source" : {
+                        "name" : "/proc/loadavg",
+                        "type" : "procfs"
+                    }
+                },
+                "load_5" : {
+                    "unit" : "",
+                    "type" : "instant",
+                    "documentation" : "procfs metric read from /proc/loadavg",
+                    "source" : {
+                        "name" : "/proc/loadavg",
+                        "type" : "procfs"
+                    }
+                },
+                "processes" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/stat",
+                    "source" : {
+                        "name" : "/proc/stat",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "ib_sw" : {
+            "*" : {
+                "rx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "Average rate of bytes received by each compute node. The IB HCA/PORT statistics are obtained by querying the extended performance counters of the switch port to which the HCA/PORT is connected."
+                },
+                "tx_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "Average rate of packets transmitted by each compute node. The IB HCA/PORT statistics are obtained by querying the extended performance counters of the switch port to which the HCA/PORT is connected."
+                },
+                "rx_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "Average rate of packets received by each compute node. The IB HCA/PORT statistics are obtained by querying the extended performance counters of the switch port to which the HCA/PORT is connected."
+                },
+                "tx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "Average rate of data transmitted by each compute node. The IB HCA/PORT statistics are obtained by querying the extended performance counters of the switch port to which the HCA/PORT is connected."
+                }
+            }
+        },
+        "intel_wtm" : {
+            "*" : {
+                "4391249" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4392145" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391377" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "CLOCKS_UNHALTED_REF" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "INSTRUCTIONS_RETIRED" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "4395024" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "CLOCKS_UNHALTED_CORE" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "4423696" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391441" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4391633" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "4424144" : {
+                    "unit" : "",
+                    "type" : "instant"
+                }
+            }
+        },
+        "ib" : {
+            "*" : {
+                "port_xmit_discards" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_switch_relay_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "symbol_error" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "VL15_dropped" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "link_downed" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "excessive_buffer_overrun_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "local_link_integrity_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_xmit_wait" : {
+                    "unit" : "ms/s",
+                    "type" : "rate"
+                },
+                "port_xmit_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_remote_physical_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_xmit_constraint_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_xmit_data" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "port_rcv_constraint_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "link_error_recovery" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "port_rcv_data" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "osc" : {
+            "*" : {
+                "wait" : {
+                    "unit" : "us/s",
+                    "type" : "rate"
+                },
+                "read_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "ost_statfs" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "write_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "ost_setattr" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "reqs" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "ost_punch" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "ost_destroy" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "ost_read" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "ost_write" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "intel_hsw_pcu" : {
+            "0" : {
+                "unit" : "",
+                "type" : "instant"
+            },
+            "C3_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "C6_CYCLES" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "cpicore" : {
+            "unit" : "1",
+            "type" : "ratio",
+            "documentation" : "Number of clock ticks per instruction using the core CPU clock."
+        },
+        "cpiref" : {
+            "unit" : "1",
+            "type" : "ratio",
+            "documentation" : "Number of reference clock ticks per instruction"
+        },
+        "mdc" : {
+            "*" : {
+                "wait" : {
+                    "unit" : "us/s",
+                    "type" : "rate"
+                },
+                "mds_getattr_lock" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_sync" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_getattr" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_close" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "reqs" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "ldlm_cancel" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_getxattr" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_readpage" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "mds_statfs" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "Error" : {
+            "type" : "metadata",
+            "documentation" : "List of the processing errors encountered during job summary creation"
+        },
+        "intel_snb_r2pci" : {
+            "ACKNOWLEDGED_USED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "ADDRESS_USED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "TRANSMITS" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "DATA_USED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "vm" : {
+            "*" : {
+                "pgfree" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "kswapd_inodesteal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgrefill_normal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "slabs_scanned" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgactivate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pswpin" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgmajfault" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pageoutrun" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgpgin" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgdeactivate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgscan_kswapd_normal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "kswapd_steal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pswpout" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgsteal_normal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgfault" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgpgout" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pginodesteal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgscan_direct_normal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgrotated" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "pgalloc_normal" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                },
+                "allocstall" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/vmstat",
+                    "source" : {
+                        "name" : "/proc/vmstat",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "intel_hsw_qpi" : {
+            "CTR0" : {
+                "unit" : "flt/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "flt/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "flt/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "flt/s",
+                "type" : "rate"
+            }
+        },
+        "intel_hsw_cbo" : {
+            "0" : {
+                "unit" : "",
+                "type" : "instant"
+            }
+        },
+        "cpldref" : {
+            "unit" : "1",
+            "type" : "ratio",
+            "documentation" : "Number of clock ticks per L1D cache load using the reference CPU clock."
+        },
+        "amd64_sock" : {
+            "*" : {
+                "HT0" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "HT1" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "HT2" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                },
+                "DRAM" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "amd64_core" : {
+            "*" : {
+                "SSE_FLOPS" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "USER" : {
+                    "unit" : "/s",
+                    "type" : "rate"
+                },
+                "DCSF" : {
+                    "unit" : "B/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "mic" : {
+            "*" : {
+                "nice_sum" : {
+                    "unit" : "cs/s",
+                    "type" : "rate"
+                },
+                "idle_sum" : {
+                    "unit" : "cs/s",
+                    "type" : "rate"
+                },
+                "user_sum" : {
+                    "unit" : "cs/s",
+                    "type" : "rate"
+                },
+                "jiffy_counter" : {
+                    "unit" : "cs/s",
+                    "type" : "rate"
+                },
+                "sys_sum" : {
+                    "unit" : "cs/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "intel_ivb_imc" : {
+            "FIXED_CTR" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_hsw" : {
+            "LOAD_OPS_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_LLC_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L1_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_PACKED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_L1D_ALL" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_CORE" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CLOCKS_UNHALTED_REF" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SSE_DOUBLE_SCALAR" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "SIMD_DOUBLE_256" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "INSTRUCTIONS_RETIRED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LOAD_OPS_L2_HIT" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "nHosts" : {
+            "unit" : "1",
+            "type" : "discrete",
+            "documentation" : "Number of hosts with raw data"
+        },
+        "intel_hsw_hau" : {
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_ivb_r2pci" : {
+            "CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "CTR3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "net" : {
+            "*" : {
+                "tx_compressed" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "multicast" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_heartbeat_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_fifo_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_fifo_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_dropped" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "collisions" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_carrier_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_compressed" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_aborted_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_window_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_over_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_packets" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_length_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_missed_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "tx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_frame_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_dropped" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_crc_errors" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                },
+                "rx_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "sysfs metric read from /sys/class/net/*/statistics",
+                    "source" : {
+                        "name" : "/sys/class/net/*/statistics",
+                        "type" : "sysfs"
+                    }
+                }
+            }
+        },
+        "proc" : {
+            "*" : {
+                "VmSwap" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmRSS" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmLib" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmPTE" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "Cpus_allowed_list" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "Threads" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "VmLck" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmHWM" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmExe" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmStk" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "Uid" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "Mems_allowed_list" : {
+                    "unit" : "",
+                    "type" : "instant"
+                },
+                "VmPeak" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmData" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                },
+                "VmSize" : {
+                    "unit" : "kB",
+                    "type" : "instant"
+                }
+            }
+        },
+        "llite" : {
+            "*" : {
+                "create" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "mknod" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "seek" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "getattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "direct_read" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "mkdir" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "removexattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "mmap" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "listxattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "osc_write" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "open" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "rename" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "osc_read" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "direct_write" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "readdir" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "setxattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "read_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "close" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "flock" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "lookup" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "rmdir" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "dirty_pages_misses" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "truncate" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "getxattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "dirty_pages_hits" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "inode_permission" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "ioctl" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "link" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "symlink" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "unlink" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "write_bytes" : {
+                    "unit" : "B/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "alloc_inode" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "setattr" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "fsync" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                },
+                "statfs" : {
+                    "unit" : "/s",
+                    "type" : "rate",
+                    "documentation" : "procfs metric read from /proc/fs/lustre/llite",
+                    "source" : {
+                        "name" : "/proc/fs/lustre/llite",
+                        "type" : "procfs"
+                    }
+                }
+            }
+        },
+        "intel_snb_cbo" : {
+            "COUNTER0_OCCUPANCY" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LLC_LOOKUP_DATA_READ" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "RING_IV_USED" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "LLC_LOOKUP_WRITE" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        },
+        "intel_ivb_qpi" : {
+            "*" : {
+                "CTR0" : {
+                    "unit" : "flt/s",
+                    "type" : "rate"
+                },
+                "CTR1" : {
+                    "unit" : "flt/s",
+                    "type" : "rate"
+                },
+                "CTR2" : {
+                    "unit" : "flt/s",
+                    "type" : "rate"
+                },
+                "CTR3" : {
+                    "unit" : "flt/s",
+                    "type" : "rate"
+                }
+            }
+        },
+        "complete" : {
+            "type" : "metadata",
+            "documentation" : "Whether the raw data was available for all nodes that the job was assigned"
+        },
+        "mem" : {
+            "HugePages_Total" : {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Inactive" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "MemFree" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Bounce" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "HugePages_Free" : {
+                "unit" : "",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "AnonPages" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "FilePages" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "MemTotal" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Writeback" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "PageTables" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Dirty" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "NFS_Unstable" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Mapped" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Active" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "used_minus_diskcache" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "Memory usage excluding the kernel SLAB cache and buffer cache."
+            },
+            "MemUsed" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            },
+            "Slab" : {
+                "unit" : "B",
+                "type" : "instant",
+                "documentation" : "sysfs metric read from /sys/devices/system/node/node*/meminfo",
+                "source" : {
+                    "name" : "/sys/devices/system/node/node*/meminfo",
+                    "type" : "sysfs"
+                }
+            }
+        },
+        "intel_uncore" : {
+            "FIXED_CTR0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC0" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC1" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC2" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC3" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC4" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC5" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC6" : {
+                "unit" : "/s",
+                "type" : "rate"
+            },
+            "PMC7" : {
+                "unit" : "/s",
+                "type" : "rate"
+            }
+        }
+    }
+};
 
+
+db.schema.update({_id: summarydef._id}, summarydef, {upsert: true})
+db.schema.update({_id: summaryDef0938._id}, summaryDef0938, {upsert: true})
+
+db.schema.update({_id: sdef._id}, sdef, {upsert: true})
