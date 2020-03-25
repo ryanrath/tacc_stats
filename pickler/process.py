@@ -86,11 +86,6 @@ def createsummary(options, totalprocs, procid):
         for acct in dbreader.reader():
             logging.debug("%s local_job_id = %s", resourcename, acct['id'])
 
-            # if we have a `node_list` property then we need to break it out / set the `host_list` property.
-            # This has been added to handle data coming from TACC Frontera
-            if 'node_list' in acct:
-                acct['host_list'] = hostlist.expand_hostlist(acct['node_list'])
-
             job = job_stats.from_acct( acct, settings['tacc_stats_home'], settings['host_list_dir'] if 'host_list_dir' in settings else None, bacct)
             summary,timeseries = summarize.summarize(job, lariat)
 
