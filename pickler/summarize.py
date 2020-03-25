@@ -294,7 +294,9 @@ class LariatManager:
 def calculate_stats(v):
     res = { }
 
-    if len(v) > 0:
+    v = numpy.nan_to_num(v)
+
+    if v is not None and len(v) > 0:
 
         try:
             (

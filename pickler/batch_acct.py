@@ -322,7 +322,7 @@ class SLURMNativeAcct(BatchAcct):
                 if '-' in n:
                     num = n.split('-')
                     for x in range(int(num[0]), int(num[1])+1):
-                        host_list_expanded.append(node_head + str("%02d" % x))
+                        host_list_expanded.append(node_head + str("%03d" % x))
                 else:
                     host_list_expanded.append(node_head + n)
         else:
@@ -338,7 +338,7 @@ class SLURMNativeAcct(BatchAcct):
           yield a
 
 
-class OpenXDMoDSlurm(BatchAcct):
+class OpenXDMoDSlurm(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command with the following """
   """ flags. """
   """ TZ=UTC sacct --clusters *cluster* --allusers \ """
@@ -348,7 +348,6 @@ class OpenXDMoDSlurm(BatchAcct):
   """          ncpus,reqcpus,reqmem,reqgres,reqtres,timelimit,nodelist,jobname \ """
   """  --state CANCELLED,COMPLETED,FAILED,NODE_FAIL,PREEMPTED,TIMEOUT"""
   def __init__(self,acct_file,host_name_ext):
-
     self.timeconverter = TimeFixer('UTC', True)
 
     self.fields = (
@@ -380,6 +379,8 @@ class OpenXDMoDSlurm(BatchAcct):
     )
 
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
+
+
 
 class SLURMNative2Acct(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command used by tacc_stats """
