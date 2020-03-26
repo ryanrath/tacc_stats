@@ -6,11 +6,15 @@ from urllib import quote_plus
 from pymongo import MongoClient
 from pymongo.errors import InvalidDocument
 
+from memory_profiler import profile
+
+
 def factory(dbconfig):
     if dbconfig['dbtype'] == 'stdout':
         return StdoutOutput(dbconfig)
     else:
         return MongoOutput(dbconfig)
+
 
 class StdoutOutput(object):
     def __init__(self, _):
@@ -26,6 +30,7 @@ class StdoutOutput(object):
         print report
 
 class MongoOutput(object):
+    @profile
     def __init__(self, dbconfig):
         if 'uri' in dbconfig:
             uri = dbconfig['uri']
@@ -40,6 +45,7 @@ class MongoOutput(object):
         self.client = MongoClient(uri)
         self.db = self.client[dbconfig['dbname']]
 
+    @profile
     def insert(self, resourcename, summary, timeseries):
         summaryOk = False
         try:
@@ -69,6 +75,7 @@ class MongoOutput(object):
 
         return summaryOk and timeseriesOk
 
+    @profile
     def logreport(self, report):
         try:
             self.db['journal'].insert(report)

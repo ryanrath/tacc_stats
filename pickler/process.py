@@ -15,7 +15,8 @@ import output
 import os
 
 from scripthelpers import setuplogger
-import hostlist
+
+from memory_profiler import profile
 
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
@@ -45,6 +46,7 @@ class RateCalculator:
         return self.rate
 
 
+@profile
 def createsummary(options, totalprocs, procid):
 
     procidstr = "%s of %s " % (procid, totalprocs) if totalprocs != None else ""
@@ -177,6 +179,7 @@ def getoptions():
 
     return retdata
 
+@profile
 def main():
 
     warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)

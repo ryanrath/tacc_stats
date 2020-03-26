@@ -9,6 +9,8 @@ import math
 
 import logging
 
+from memory_profiler import profile
+
 if sys.version.startswith("3"):
     import io
     io_method = io.BytesIO
@@ -55,6 +57,7 @@ SF_MARK_CHAR = '%'
 
 KEEP_EDITS = False
 
+@profile
 def schema_fixup(type_name, desc):
     """ This function implements a workaround for a known issue with incorrect schema """
     """ definitions for irq, block and sched tacc_stats metrics. """
@@ -111,6 +114,7 @@ def schema_fixup(type_name, desc):
 class SchemaEntry(object):
     __slots__ = ('key', 'index', 'is_control', 'is_event', 'width', 'mult', 'unit')
 
+    @profile
     def __init__(self, i, s):
         opt_lis = s.split(',')
         self.key = opt_lis[0]
@@ -168,6 +172,8 @@ class SchemaEntry(object):
 
 
 class Schema(dict):
+
+    @profile
     def __init__(self, desc):
         dict.__init__(self)
         self.desc = desc
@@ -204,9 +210,11 @@ class Schema(dict):
     def update(self, **args):
         self._notsup("update")
 
+    @profile
     def items(self):
         return zip(self._key_list, self._value_list)
 
+    @profile
     def iteritems(self):
         for k in self._key_list:
             yield (k, dict.__getitem__(self, k))
@@ -278,6 +286,7 @@ class Host(object):
     def error(self, fmt, *args):
         self.job.error('%s: ' + fmt, self.name, *args)
 
+    @profile
     def get_stats_paths(self):
         raw_host_stats_dir = os.path.join(self.raw_stats_dir, self.name+self.name_ext)
         job_start = self.job.start_time - RAW_STATS_TIME_PAD
@@ -306,6 +315,7 @@ class Host(object):
         path_list.sort(key=lambda tup: tup[1])
         return path_list
 
+    @profile
     def read_stats_file_header(self, fp):
         file_schemas = {}
         for line in fp:
@@ -336,6 +346,7 @@ class Host(object):
         return file_schemas
 
 
+    @profile
     def read_stats_file(self, fp):
 
         if self.state == DONE:
@@ -359,6 +370,7 @@ class Host(object):
             self.error("file `%s' exception %s on line %s", self.filename, str(e), self.fileline)
 
 
+    @profile
     def parse(self, line):
         if len(line) < 1:
             return
@@ -389,6 +401,7 @@ class Host(object):
         self.trace("TRANS {} -> {} ({})".format( statenames[self.state], statenames[newstate], reason ) )
         self.state = newstate
 
+    @profile
     def processtimestamp(self,line):
         recs = line.strip().split(" ")
         try:
@@ -415,6 +428,7 @@ class Host(object):
             self.times.append( self.timestamp )
 
     @staticmethod
+    @profile
     def processproc(schema, devname, rest):
         """ Process names may contain arbitrary data including the tacc_stats record delimiter character
             Attempt to handle the case where the process name contains one of more record delimiters """
@@ -429,6 +443,7 @@ class Host(object):
 
         return devname, vals
 
+    @profile
     def processdata(self,line):
         if self.state == ACTIVE or self.state == LAST_RECORD:
 
@@ -467,6 +482,7 @@ class Host(object):
         print "processproperty"
         pass
 
+    @profile
     def processmark(self,line):
         mark = line[1:].strip()
         actions = mark.split()
@@ -517,6 +533,7 @@ class Host(object):
                 self.procdump.parse(line)
         pass
 
+    @profile
     def gather_stats(self):
         path_list = self.get_stats_paths()
         if len(path_list) == 0:
@@ -535,6 +552,7 @@ class Host(object):
 
         return self.raw_stats
 
+    @profile
     def get_stats(self, type_name, dev_name, key_name):
         """Host.get_stats(type_name, dev_name, key_name)
         Return the vector of stats for the given type, dev, and key.
@@ -572,6 +590,7 @@ class Job(object):
         self.errors.add( fmt % args )
         error('%s: ' + fmt, str(self.id), *args)
 
+    @profile
     def get_schema(self, type_name, desc=None):
         schema = self.schemas.get(type_name)
         if schema:
@@ -583,6 +602,7 @@ class Job(object):
             schema = self.schemas[type_name] = Schema(desc)
         return schema
 
+    @profile
     def gather_stats(self):
         if "host_list" in self.acct:
             host_list = self.acct['host_list']
@@ -617,6 +637,7 @@ class Job(object):
             return False
         return True
 
+    @profile
     def munge_times(self):
         times_lis = []
         for host in self.hosts.itervalues():
@@ -643,7 +664,8 @@ class Job(object):
         if len(times_lis[0]) != len(times_lis[-1]):
             self.errors.add( "Number of records differs between hosts (min {}, max {})".format(len(times_lis[0]), len(times_lis[-1]) ) )
         return True
-    
+
+    @profile
     def process_dev_stats(self, host, type_name, schema, dev_name, raw):
         def trace(fmt, *args):
             return self.trace("host `%s', type `%s', dev `%s': " + fmt,
@@ -744,6 +766,7 @@ class Job(object):
                     A[i, j] *= e.mult
         return A
 
+    @profile
     def logoverflow(self, host_name, type_name, dev_name, key_name):
         if type_name not in self.overflows:
             self.overflows[type_name] = dict()
@@ -754,6 +777,7 @@ class Job(object):
 
         self.overflows[type_name][dev_name][key_name].add(host_name)
 
+    @profile
     def process_stats(self):
         for host in self.hosts.itervalues():
             host.stats = {}
@@ -773,7 +797,8 @@ class Job(object):
                 e.width = None
                 e.mult = None
         return True
-    
+
+    @profile
     def aggregate_stats(self, type_name, host_names=None, dev_names=None):
         """Job.aggregate_stats(type_name, host_names=None, dev_names=None)
         """
@@ -802,6 +827,7 @@ class Job(object):
                 nr_devs += 1
         return (A, nr_hosts, nr_devs)
 
+    @profile
     def get_stats(self, type_name, dev_name, key_name):
         """Job.get_stats(type_name, dev_name, key_name)
         Return a dictionary with keys host names and values the vector
@@ -814,7 +840,7 @@ class Job(object):
             host_stats[host_name] = host.stats[type_name][dev_name][:, index]
         return host_stats
 
-
+@profile
 def from_acct(acct, stats_home, host_list_dir, batch_acct):
     """from_acct(acct, stats_home)
     Return a Job object constructed from the appropriate accounting data acct using
@@ -825,6 +851,7 @@ def from_acct(acct, stats_home, host_list_dir, batch_acct):
     return job
 
 
+@profile
 def from_id(id, **kwargs):
     """from_id(id, acct_file=None, acct_path=sge_acct_path, use_awk=True)
     Return Job object for the job with SGE id ID, or None if no such job was found.

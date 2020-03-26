@@ -1,6 +1,8 @@
 """ Utility functions that are used from more than one place """
 import logging
+from memory_profiler import profile
 
+@profile
 def setuplogger(consolelevel, filename=None, filelevel=None):
     """ setup the python root logger to log to the console with defined log
         level. Optionally also log to file with the provided level """

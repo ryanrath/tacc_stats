@@ -10,10 +10,13 @@ import logging
 import getopt
 from summarize import SUMMARY_VERSION
 from scripthelpers import setuplogger
+from memory_profiler import profile
 
 VERSION_NUMBER = 1
 
 class DbInterface:
+
+    @profile
     def __init__(self, dbname, tablename, mydefaults):
 
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults)
@@ -21,6 +24,7 @@ class DbInterface:
         self.query = "INSERT INTO " + tablename + " (resource_id,job_array_index,local_job_id,start_time_ts,end_time_ts,record,ingest_version) VALUES(%s,%s,%s,%s,%s,COMPRESS(%s)," + str(VERSION_NUMBER) + ") ON DUPLICATE KEY UPDATE ingest_version = VALUES(ingest_version), record = VALUES(record)"
         self.buffered = 0
 
+    @profile
     def resettable(self,dropexisting = False):
         cur = self.con.cursor()
         if dropexisting:
@@ -42,6 +46,7 @@ class DbInterface:
                 "INDEX (resource_id,process_version)" + \
                 ") " )
 
+    @profile
     def insert(self, data):
         cur = self.con.cursor()
         try:
@@ -58,9 +63,11 @@ class DbInterface:
             self.buffered = 0
 
 
+    @profile
     def postinsert(self):
         self.con.commit()
 
+    @profile
     def getmostrecent(self, resource_id):
         query = "SELECT MAX(end_time_ts) FROM " + self.tablename + " WHERE resource_id = %s"
         data = ( resource_id, )
@@ -69,11 +76,15 @@ class DbInterface:
         cur.execute(query, data)
         return cur.fetchone()[0]
 
+
 class DbLogger(object):
+
+    @profile
     def __init__(self, dbname, tablename, mydefaults):
         self.con = mdb.connect(db=dbname, read_default_file=mydefaults)
         self.tablename = tablename
 
+    @profile
     def logprocessed(self, acct, resource_id, version):
 
         query = "UPDATE " + self.tablename + " SET process_version = %s, summary_version = %s WHERE resource_id = %s AND local_job_id = %s AND job_array_index = %s AND end_time_ts = %s"
@@ -85,7 +96,10 @@ class DbLogger(object):
         cur.execute(query, data)
         self.con.commit()
 
+
 class DbAcct(object):
+
+    @profile
     def __init__(self, resource_id, dbconf, process_version, totalprocs = None, procid = None, local_jobid = None):
         self.con = mdb.connect(db=dbconf['dbname'], read_default_file=dbconf['defaultsfile'])
         self.tablename = dbconf['tablename']
@@ -95,6 +109,7 @@ class DbAcct(object):
         self.totalprocs = totalprocs
         self.procid = procid
 
+    @profile
     def jobidreader(self, local_jobid):
         query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND local_job_id = %s"
         data = (self.resource_id, local_jobid)
@@ -110,6 +125,7 @@ class DbAcct(object):
             r = json.loads(record[0])
             yield r
 
+    @profile
     def timereader(self,start_time=None, end_time=None, seek=0):
         query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND process_version != %s "
         data = ( self.resource_id, self.process_version )
@@ -131,6 +147,7 @@ class DbAcct(object):
             r = json.loads(record[0])
             yield r
 
+    @profile
     def reader(self,start_time=None, end_time=None, seek=0):
         """ seek parameter is unused. It is present for API compatibilty with file batch acct class """
         if self.local_jobid:
@@ -141,7 +158,7 @@ class DbAcct(object):
                 yield record
 
 
-        
+@profile
 def getconfig(configfilename = None):
     
     if configfilename == None:
@@ -152,9 +169,13 @@ def getconfig(configfilename = None):
 
     return config
 
+
+@profile
 def ingestall(config):
     ingest(config, 9223372036854775807L, 0) 
 
+
+@profile
 def ingest(config, end_time, start_time = None):
 
     dbconf = config['accountdatabase']

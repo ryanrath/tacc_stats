@@ -4,7 +4,9 @@ import logging
 import MySQLdb as mdb
 from torque_acct import TorqueAcct
 from parsers import TimeFixer
+from memory_profiler import profile
 
+@profile
 def factory(kind, acct_file, host_name_ext='', resource=None, config=None):
   if kind == 'SGE':
     return SGEAcct(acct_file,host_name_ext)
@@ -21,6 +23,7 @@ def factory(kind, acct_file, host_name_ext='', resource=None, config=None):
   elif kind == 'TORQUE':
     return TorqueAcct(acct_file, host_name_ext)
 
+@profile
 def special_char_stripper(fp):
    for line in fp:
       yield line.replace('\r', '').encode('utf-8')
@@ -43,6 +46,7 @@ class BatchAcct(object):
   def postprocessrecord(self, d):
       return True
 
+  @profile
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
     """reader(start_time=0, end_time=9223372036854775807L, seek=0)
     Return an iterator for all jobs that finished between start_time and end_time.
@@ -107,7 +111,7 @@ class BatchAcct(object):
         logging.debug('Processed %s records, %s skipped for %s', record_count, skip_count, fname)
         file.close()
 
-
+  @profile
   def from_id_with_file_1(self, id, seek=0):
     for acct in self.reader(seek=seek):
       if acct['id'] == id:
@@ -240,6 +244,7 @@ class SLURMNativeAcct(BatchAcct):
   """     --format jobid,cluster,partition,account,group,gid,user,uid,submit,eligible,start,end,exitcode,State,nnodes,ncpus,reqcpus,nodelist,jobname,timelimit """
   """     --state CA,CD,F,NF,TO """
 
+  @profile
   def __init__(self,acct_file,host_name_ext):
 
     self.fields = (
@@ -267,6 +272,7 @@ class SLURMNativeAcct(BatchAcct):
 
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
+  @profile
   def get_host_list_path(self,acct,host_list_dir):
     """Return the path of the host list written during the prolog."""
     start_date = datetime.date.fromtimestamp(acct['start_time'])
@@ -278,6 +284,7 @@ class SLURMNativeAcct(BatchAcct):
         return path
     return None
 
+  @profile
   def fixuprecord(self, d):
     """ Try to handle case where the name field contains the delimiter character """
     num_cols = len(d[None])
@@ -287,6 +294,7 @@ class SLURMNativeAcct(BatchAcct):
       del d[None][0]
     del d[None]
 
+  @profile
   def get_host_list(self, nodelist):
     
     if nodelist is None:
@@ -330,6 +338,7 @@ class SLURMNativeAcct(BatchAcct):
 
     return host_list_expanded
 
+  @profile
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
       for a in super(SLURMNativeAcct,self).reader(start_time, end_time, seek):
           a['host_list'] = self.get_host_list(a['node_list'])
@@ -347,6 +356,8 @@ class OpenXDMoDSlurm(SLURMNativeAcct):
   """          user,uid,submit,eligible,start,end,elapsed,exitcode,state,nnodes,\ """
   """          ncpus,reqcpus,reqmem,reqgres,reqtres,timelimit,nodelist,jobname \ """
   """  --state CANCELLED,COMPLETED,FAILED,NODE_FAIL,PREEMPTED,TIMEOUT"""
+
+  @profile
   def __init__(self,acct_file,host_name_ext):
     self.timeconverter = TimeFixer('UTC', True)
 
@@ -385,6 +396,7 @@ class OpenXDMoDSlurm(SLURMNativeAcct):
 class SLURMNative2Acct(SLURMNativeAcct):
   """ Process accounting data produced by the sacct command used by tacc_stats """
 
+  @profile
   def __init__(self, acct_file, host_name_ext, resource, config):
 
     self.starttimeconverter = TimeFixer('America/Los_Angeles', True)
@@ -432,6 +444,7 @@ class SLURMNative2Acct(SLURMNativeAcct):
 
     BatchAcct.__init__(self,'SLURM',acct_file,host_name_ext,"|")
 
+  @profile
   def fixuprecord(self, d):
     """ Try to handle case where the name field contains the delimiter character """
     num_cols = len(d[None])
@@ -446,6 +459,7 @@ class SLURMNative2Acct(SLURMNativeAcct):
     d['cores'] = int(d['cores'])
     del d[None]
 
+  @profile
   def postprocessrecord(self, d):
     mtch = self.jobarraydetect.match(d['id'])
 
@@ -489,6 +503,7 @@ class XDcDBAcct(BatchAcct):
       table (which in turn comes from the XDcDB).
   """
 
+  @profile
   def __init__(self,acct_file,host_name_ext):
 
     self.fields = (
@@ -507,6 +522,7 @@ class XDcDBAcct(BatchAcct):
 
     BatchAcct.__init__(self,'XDcDB',acct_file,host_name_ext,"|")
 
+  @profile
   def get_host_list_path(self,acct,host_list_dir):
     """Return the path of the host list written during the prolog."""
     start_date = datetime.date.fromtimestamp(acct['start_time'])
@@ -518,9 +534,11 @@ class XDcDBAcct(BatchAcct):
         return path
     return None
 
+  @profile
   def get_host_list(self, nodelist):
     return nodelist.split(",")
 
+  @profile
   def reader(self,start_time=0, end_time=9223372036854775807L, seek=0):
       for a in super(XDcDBAcct,self).reader(start_time, end_time, seek):
           a['host_list'] = self.get_host_list(a['node_list'])
