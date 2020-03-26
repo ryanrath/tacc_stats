@@ -139,8 +139,11 @@ class BasicTaccArchiveParser(object):
         """ open and parse the contents of the archive """
 
         self.fileline = 0
-
-        with gzip.open(self.filepath) as filep:
+        if self.filepath.endswith('.gz'): 
+            open_func=gzip.open
+        else: 
+            open_func=open
+        with open_func(self.filepath) as filep:
             for line in filep:
                 self.fileline += 1
                 self.parseline(line.strip())
@@ -164,7 +167,6 @@ class TaccStatsArchiveProcessor(object):
             hostname = data.hostname
             if self.hostnameext != "" and (not hostname.endswith(self.hostnameext)):
                 hostname += "." + self.hostnameext
-
             if data.firsttimestamp != None:
                 self.dbac.insert(hostname, archive, data.firsttimestamp, data.lasttimestamp, data.tacc_version)
             else:
@@ -269,7 +271,7 @@ class TaccStatsArchiveFinder(object):
             dirpath = os.path.join(topdir, hostname)
             for taccfile in os.listdir(dirpath):
                 archivefile = os.path.join(dirpath, taccfile)
-                if taccfile.endswith(".gz") and self.filenameok(taccfile):
+                if self.filenameok(taccfile):
                     yield archivefile
 
             hostcount += 1
