@@ -124,7 +124,7 @@ def createsummary(options, totalprocs, procid):
 
         processtimes = { "mintime": 2**64, "maxtime": 0 }
 
-        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'])
+        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'], options['large_jobs'])
 
         bacct = batch_acct.factory(settings['batch_system'], settings['acct_path'], settings['host_name_ext'] )
 
@@ -207,10 +207,12 @@ def getoptions():
         "logfile": None,
         "resource": None,
         "localjobid": None,
-        "config": None
+        "config": None,
+        "large_jobs": False,
+        "small_jobs": False
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqho", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqgsho", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "help", "open_xdmod"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
@@ -223,6 +225,10 @@ def getoptions():
             retdata['logfile'] = opt[1]
         elif opt[0] in ("-q", "--quiet"):
             retdata['log'] = logging.ERROR
+        elif opt[0] in ("-g", "--large_jobs"):
+            retdata["large_jobs"] = True
+        elif opt[0] in ("-s", "--small-jobs"):
+            retdata["small_jobs"] = True
         elif opt[0] in ("-c", "--config"):
             retdata['config'] = opt[1]
         elif opt[0] in ("-o", "--openxdmod"):
@@ -242,6 +248,8 @@ def main():
     warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)
 
     options = getoptions()
+    if options['small_jobs'] and options['large_jobs']:
+        raise Exception('You can may only specify either small_jobs or large_jobs, not both.')
 
     setuplogger(options['log'], options['logfile'], logging.INFO)
 

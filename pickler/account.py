@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-import MySQLdb as mdb
-import os.path
-import batch_acct
-import json
-import sys
-import time
-import logging
 import getopt
-from summarize import SUMMARY_VERSION
+import json
+import logging
+import sys
+
+import MySQLdb as mdb
+
+import batch_acct
 from scripthelpers import setuplogger
+from summarize import SUMMARY_VERSION
 
 VERSION_NUMBER = 1
 
@@ -86,7 +86,7 @@ class DbLogger(object):
         self.con.commit()
 
 class DbAcct(object):
-    def __init__(self, resource_id, dbconf, process_version, totalprocs = None, procid = None, local_jobid = None):
+    def __init__(self, resource_id, dbconf, process_version, totalprocs = None, procid = None, local_jobid = None, large_jobs = False, small_jobs = False):
         self.con = mdb.connect(db=dbconf['dbname'], read_default_file=dbconf['defaultsfile'])
         self.tablename = dbconf['tablename']
         self.process_version = process_version
@@ -94,6 +94,8 @@ class DbAcct(object):
         self.local_jobid = local_jobid
         self.totalprocs = totalprocs
         self.procid = procid
+        self.large_jobs = large_jobs
+        self.small_jobs = small_jobs
 
     def jobidreader(self, local_jobid):
         query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND local_job_id = %s"
@@ -110,20 +112,100 @@ class DbAcct(object):
             r = json.loads(record[0])
             yield r
 
-    def timereader(self,start_time=None, end_time=None, seek=0):
-        query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND process_version != %s "
-        data = ( self.resource_id, self.process_version )
-        if start_time != None:
-            query += " AND end_time_ts >= %s "
-            data = data + ( start_time, )
-        if end_time != None:
-            query += " AND end_time_ts < %s "
-            data = data + ( end_time, )
-        if self.totalprocs != None and self.procid != None:
-            query += " AND (CRC32(local_job_id) %% %s) = %s"
-            data = data + ( self.totalprocs, self.procid )
-        query += " ORDER BY end_time_ts ASC"
+    def generate_time_query(self, start_time=None, end_time=None):
+        """
+        Generate a query, data tuple based on whether or not the `large_jobs` argument was provided on the command line.
 
+        :param start_time:
+        :param end_time:
+        :return:
+        """
+        if not self.large_jobs and not self.small_jobs:
+            query = "SELECT UNCOMPRESS(record) FROM " + self.tablename + " WHERE resource_id = %s AND process_version != %s "
+            data = ( self.resource_id, self.process_version )
+            if start_time != None:
+                query += " AND end_time_ts >= %s "
+                data = data + ( start_time, )
+            if end_time != None:
+                query += " AND end_time_ts < %s "
+                data = data + ( end_time, )
+            if self.totalprocs != None and self.procid != None:
+                query += " AND (CRC32(local_job_id) %% %s) = %s"
+                data = data + ( self.totalprocs, self.procid )
+            query += " ORDER BY end_time_ts ASC"
+            return query, data
+        else:
+            # We're going to be dealing with [small|large]_jobs, "small_jobs" are defined as having less then
+            # 10000 node hours while large jobs are > 10000 node hours. Since we need to be able to filter on node hours
+            # our sql is going to be slightly more complicated.
+
+            # This query is used to select the initial set of data from accountfact
+            initial_data_query = """
+                                       SELECT UNCOMPRESS(af.record)                     AS uncompressed,
+                                              TIMEDIFF(FROM_UNIXTIME(af.end_time_ts),
+                                                       FROM_UNIXTIME(af.start_time_ts)) AS time_diff,
+                                              af.end_time_ts,
+                                              af.record
+                                       FROM {} AS af
+                                       WHERE af.process_version != %s
+                                         AND af.resource_id = %s
+                """.format(self.tablename)
+
+            data = (self.resource_id, self.process_version)
+            if start_time is not None:
+                initial_data_query += " \t\t\t\t\t\t AND af.end_time_ts >= %s "
+                data = data + (start_time,)
+            if end_time is not None:
+                initial_data_query += "\n \t\t\t\t\t\t\t\t\t AND af.end_time_ts < %s "
+                data = data + (end_time,)
+            if self.totalprocs is not None and self.procid is not None:
+                initial_data_query += "\n AND (CRC32(af.local_job_id) %% %s) = %s"
+                data = data + (self.totalprocs, self.procid)
+
+            # This outer query utilizes the initial_data_query to allow us to calculate / filter jobs based on a job_
+            # hour statistic
+            query = """
+                SELECT
+                    l3.uncompressed
+                FROM (
+                     SELECT CAST(
+                                    SUBSTR(
+                                            l2.uncompressed,
+                                            l2.nodes_loc + l2.nodes_len,
+                                            LOCATE('"', l2.uncompressed, l2.nodes_loc + l2.nodes_len) -
+                                            (l2.nodes_loc + l2.nodes_len)
+                                    )
+                            AS INTEGER) AS nodes,
+                            l2.hours,
+                            l2.end_time_ts,
+                            l2.uncompressed
+                     FROM (
+                              /* intermediate step, gathering data for calculations to be made further up the select chain */
+                              SELECT INSTR(data.uncompressed, '"nodes": "') AS nodes_loc,
+                                     LENGTH('"nodes": "')                   AS nodes_len,
+                                     data.uncompressed,
+                                     HOUR(data.time_diff)                   AS hours,
+                                     data.end_time_ts
+                              FROM (
+                                  {}
+                              ) AS data
+                          ) AS l2
+                 ) AS l3
+                """.format(initial_data_query)
+
+            # Make sure to filter on the size of jobs we're supposed to be processing.
+            if self.small_jobs:
+                query += "WHERE l3.nodes * l3.hours <= 10000"
+            elif self.large_jobs:
+                query += "WHERE l3.nodes * l3.hours > 10000"
+
+            # Make sure to maintain the original ordering.
+            query += "ORDER BY l3.end_time_ts"
+
+            return query, data
+
+    def timereader(self, start_time=None, end_time=None, seek=0):
+        (query, data) = self.generate_time_query(start_time, end_time)
         cur = self.con.cursor()
         cur.execute(query, data)
 
