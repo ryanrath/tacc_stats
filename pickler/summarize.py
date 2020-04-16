@@ -603,7 +603,11 @@ def summarize(j, lariatcache):
                             if interface not in totals[metricname]:
                                 totals[metricname][interface] = []
 
-                            totals[metricname][interface].append( host.stats[metricname][device][-1,index] / hostwalltime )
+                            # We expect / allow data to be absent and as such need to check that it's present before
+                            # accessing it for summarization.
+                            (num, shape_len) = host.stats[metricname][device].shape
+                            if index < shape_len:
+                                totals[metricname][interface].append( host.stats[metricname][device][-1,index] / hostwalltime )
                         else:
                             # Generate values for all enties
                             if interface not in totals[metricname]:
