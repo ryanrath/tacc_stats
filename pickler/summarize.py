@@ -163,10 +163,13 @@ def gentimedata(j, indices, ignorelist, isevent):
             for interface in indices[metric].keys() + ["all"]:
                 if metric not in hostdata:
                     hostdata[metric] = {}
-                if interface not in hostdata[metric]:
-                    hostdata[metric][interface] = numpy.interp(times, host.times, getinterfacestats(host.stats, metric, interface, indices))
-                else:
-                    hostdata[metric][interface] += numpy.interp(times, host.times, getinterfacestats(host.stats, metric, interface, indices))
+
+                int_stats = getinterfacestats(host.stats, metric, interface, indices)
+                int_stats_valid = int_stats is not None and len(int_stats.shape) > 1
+                if interface not in hostdata[metric] and int_stats_valid:
+                    hostdata[metric][interface] = numpy.interp(times, host.times, int_stats)
+                elif int_stats_valid:
+                    hostdata[metric][interface] += numpy.interp(times, host.times, int_stats)
 
             if metric in computed:
                 for outname, formula in computed[metric].iteritems():
@@ -396,12 +399,16 @@ def getinterfacestats(hoststats, metricname, interface, indices):
             if interface == "all":
                 totals = numpy.sum(devstats, axis = 1)
             else:
-                totals = numpy.array(devstats[:,ifidx])
+                (num, shape_len) = devstats.shape
+                if ifidx < shape_len:
+                    totals = numpy.array(devstats[:,ifidx])
         else:
             if interface == "all":
                 totals += numpy.sum(devstats, axis = 1)
             else:
-                totals += numpy.array(devstats[:,ifidx])
+                (num, shape_len) = devstats.shape
+                if ifidx < shape_len:
+                    totals = numpy.array(devstats[:,ifidx])
 
     return totals
 
