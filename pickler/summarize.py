@@ -82,18 +82,18 @@ def addtoseries(interface, series, enties, data):
 def gentimedata(j, indices, ignorelist, isevent):
 
     # Do the special derived metrics:
-    derived = { 
-            "intel_snb": { 
+    derived = {
+            "intel_snb": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
-                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ]
             },
-            "intel_hsw": { 
+            "intel_hsw": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
                 "meancpldref": [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "LOAD_L1D_ALL" ],
                 "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1])", "SIMD_DOUBLE_256", "SSE_DOUBLE_ALL" ],
-                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ] 
+                "flops":   [ "4.0*numpy.diff(a[0]) + 2.0*numpy.diff(a[1]) + numpy.diff(a[2])", "SIMD_DOUBLE_256", "SSE_DOUBLE_PACKED", "SSE_DOUBLE_SCALAR" ]
             },
             "intel_ivb": {
                 "meancpiref":  [ "numpy.diff(a[0])/numpy.diff(a[1])", "CLOCKS_UNHALTED_REF", "INSTRUCTIONS_RETIRED" ],
@@ -346,7 +346,7 @@ def addinstmetrics(summary, overflows, device, interface, instance, values):
 
     if device in overflows and interface in overflows[device] and instance in overflows[device][interface]:
         data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(list(overflows[device][interface][instance])) }
-    
+
     if device not in summary:
         summary[device.replace(".","-")] = {}
     if interface not in summary[device]:
@@ -366,7 +366,7 @@ def addmetrics(summary, overflows, device, interface, values):
         # impacts all cpu metrics.
         if (device == "cpu") or ( interface in overflows[device]):
             data = { "error": 2048, "error_msg": "Counter overflow on hosts " + str(overflows[device]) }
-    
+
     if device not in summary:
         summary[device.replace(".","-")] = {}
 
@@ -435,34 +435,11 @@ def getperinterfacemetrics():
              "intel_skx_cha"]
 
 
-def fix_unicode(value):
-    """
-    This function helps convert a given value, recursively, from unicode to ascii.
-
-    :param value:
-    :return:
-    """
-    if type(value) == unicode:
-        return value.encode('ascii', 'ignore')
-    elif type(value) == dict:
-        temp = {}
-        for k, v in value.iteritems():
-            temp[k.encode('ascii', 'ignore')] = fix_unicode(v)
-        return temp
-    elif type(value) == list:
-        temp = []
-        for i in value:
-            temp.append(fix_unicode(i))
-        return temp
-    else:
-        return value
-
-
 def summarize(j, lariatcache):
 
     summaryDict = {}
     summaryDict['Error'] = list(j.errors)
-    
+
     # TODO summarySchema = {}
 
     # Data for a host is calculated in the munge_times() function.
@@ -579,7 +556,7 @@ def summarize(j, lariatcache):
         if hostwalltime < MINTIMEDELTA:
             summaryDict['Error'].append("Insufficient data points for host {}. {}".format(host.name, host.times) )
             continue
-        
+
         if 'cpu' in host.stats.keys() and 'mem' \
           in host.stats.keys():
             nCoresPerSocket = len(host.stats['cpu']) \
@@ -621,18 +598,21 @@ def summarize(j, lariatcache):
                                 totals[metricname][interface] = {}
                             if device not in totals[metricname][interface]:
                                 totals[metricname][interface][device] = []
-                            
-                            totals[metricname][interface][device].append( host.stats[metricname][device][-1,index] / hostwalltime  )
+                            (num, shape_len) = host.stats[metricname][device].shape
+                            if index < shape_len:
+                                totals[metricname][interface][device].append( host.stats[metricname][device][-1,index] / hostwalltime  )
                     else:
                         # Instantaneous metrics have all timeseries values processed except
                         # the first and last
-                        ndatapoints = len(host.stats[metricname][device][:,index])
-                        if ndatapoints > 2:
-                            end = ndatapoints - 1
-                        else:
-                            end = ndatapoints
+                        (num, shape_len) = host.stats[metricname][device].shape
+                        if index < shape_len:
+                            ndatapoints = len(host.stats[metricname][device][:,index])
+                            if ndatapoints > 2:
+                                end = ndatapoints - 1
+                            else:
+                                end = ndatapoints
 
-                        data = host.stats[metricname][device][1:ndatapoints,index]
+                            data = host.stats[metricname][device][1:ndatapoints,index]
 
                         # Special case - memory is raw per node, but averaged per core
                         if metricname == "mem":
@@ -879,7 +859,7 @@ def summarize(j, lariatcache):
     summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
     # add account info from slurm accounting files
-    summaryDict['acct'] = fix_unicode(j.acct)
+    summaryDict['acct'] = job.acct
 
     # add schema outline
     if statsOk and not COMPACT_OUTPUT:
@@ -926,7 +906,7 @@ def summarize(j, lariatcache):
         timeseries['_id'] = uniq
 
     if timedata != None:
-        summaryDict['timedata'] = timedata 
+        summaryDict['timedata'] = timedata
 
     return (summaryDict, timeseries)
 
