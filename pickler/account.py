@@ -195,7 +195,7 @@ class DbAcct(object):
 
             # Make sure to filter on the size of jobs we're supposed to be processing.
             if self.small_jobs:
-                query += "WHERE l3.hours <= 24 "
+                query += "WHERE l3.hours <= 24 AND l3.nodes < 200"
             elif self.large_jobs:
                 query += "WHERE l3.hours > 24 "
 
