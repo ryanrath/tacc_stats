@@ -15,18 +15,20 @@ import output
 import os
 
 from scripthelpers import setuplogger
+from journal import Journal
 
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
 
 class RateCalculator:
     def __init__(self, procid):
+        self.count_good = 0
         self.count = 0
         self.starttime = 0
         self.rate = 0
         self.procid = procid
 
-    def increment(self):
+    def increment(self, isGood):
         if self.count == 0:
             self.starttime = time.time()
         else:
@@ -39,6 +41,8 @@ class RateCalculator:
                                  self.procid, self.count, diff, self.rate)
 
         self.count += 1
+        if isGood:
+            self.count_good += 1
 
     def rate(self):
         return self.rate
@@ -92,17 +96,19 @@ def createsummary(options, totalprocs, procid):
                 # Do not mark incomplete jobs as done unless they are older than the
                 # reference time (which defaults to 7 days ago)
                 dbwriter.logprocessed(acct, settings['resource_id'], ERROR_INCOMPLETE)
+                ratecalc.increment(False)
                 continue
             
             if insertOk:
                 dbwriter.logprocessed( acct, settings['resource_id'], PROCESS_VERSION )
                 processtimes['mintime'] = min( processtimes['mintime'], summary["acct"]['end_time'] )
                 processtimes['maxtime'] = max( processtimes['maxtime'], summary["acct"]['end_time'] )
-                ratecalc.increment()
+                ratecalc.increment(True)
             else:
                 # Mark as negative process version to indicate that it has been processed
                 # but no summary was output
                 dbwriter.logprocessed( acct, settings['resource_id'], 0 - PROCESS_VERSION )
+                ratecalc.increment(False)
 
         if processtimes['maxtime'] != 0:
             timewindows[resourcename] = processtimes
@@ -119,12 +125,16 @@ def createsummary(options, totalprocs, procid):
             "start_time": ratecalc.starttime,
             "end_time": time.time() ,
             "rate": ratecalc.rate,
-            "records": ratecalc.count
+            "records": ratecalc.count,
+            "good": ratecalc.count_good
             }
 
     report = { "proc": proc, "resources": timewindows }
 
     outdb.logreport(report)
+
+    journal = Journal(config)
+    journal.logreport(report)
 
 def usage():
     """ print usage """
