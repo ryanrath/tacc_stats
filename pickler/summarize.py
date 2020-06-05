@@ -432,10 +432,13 @@ def summarize(j, lariatcache):
     summaryDict['complete'] = True
 
     if j.acct['end_time'] - j.acct['start_time'] > 0:
-        for hdata in j.hosts.itervalues():
-            if not hdata.complete:
-                summaryDict['complete'] = False
-                break
+        if getnumhosts(j.acct) != len(j.hosts):
+            summaryDict['complete'] = False
+        else:
+            for hdata in j.hosts.itervalues():
+                if not hdata.complete:
+                    summaryDict['complete'] = False
+                    break
 
     metrics = None
     statsOk = True
