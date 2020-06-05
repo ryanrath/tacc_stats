@@ -620,6 +620,14 @@ class Job(object):
         times_lis = []
         for host in self.hosts.itervalues():
             times_lis.append(host.times)
+
+            # the data for a host is considered complete if there is at least one
+            # measurement for every 12 minutes of job walltime.
+            if len(host.times) == 0:
+                host.complete = False
+            else:
+                host.complete = ((self.end_time - self.start_time) / len(host.times)) < 720
+
             del host.times
 
         times_lis.sort(key=lambda lis: len(lis))

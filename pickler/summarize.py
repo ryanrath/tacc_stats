@@ -425,22 +425,17 @@ def summarize(j, lariatcache):
     
     # TODO summarySchema = {}
 
-    # The tacc_stats source data is assumed complete if we have records with end markers
-    # for all hosts.
-    hostswithends = 0
-    for h,v in j.hosts.iteritems():
-        for mark in v.marks.iterkeys():
-            if mark.startswith("end"):
-                hostswithends += 1
+    # Data for a host is calculated in the munge_times() function.
+    # A job is marked as complete if either it had zero-walltime or
+    # if all hosts had data.
 
-    if getnumhosts(j.acct) == hostswithends:
-        summaryDict['complete'] = True
-    else:
-        if j.acct['end_time'] - j.acct['start_time'] > 0:
-            summaryDict['complete'] = False
-        else:
-            # Allow zero-length jobs to have no statistics
-            summaryDict['complete'] = True
+    summaryDict['complete'] = True
+
+    if j.acct['end_time'] - j.acct['start_time'] > 0:
+        for hdata in j.hosts.itervalues():
+            if not hdata.complete:
+                summaryDict['complete'] = False
+                break
 
     metrics = None
     statsOk = True
