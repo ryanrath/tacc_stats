@@ -859,7 +859,7 @@ def summarize(j, lariatcache):
     summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
     # add account info from slurm accounting files
-    summaryDict['acct'] = job.acct
+    summaryDict['acct'] = j.acct
 
     # add schema outline
     if statsOk and not COMPACT_OUTPUT:
