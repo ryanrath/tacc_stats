@@ -211,7 +211,7 @@ def getoptions():
         "small_jobs": False
     }
 
-    opts, args = getopt(sys.argv[1:], "r:l:c:dqgsho", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "large", "small", "help"])
+    opts, args = getopt(sys.argv[1:], "r:l:c:dqgsh", ["resource=", "logfile=", "localjobid=", "config=", "debug", "quiet", "large", "small", "help"])
 
     for opt in opts:
         if opt[0] in ("-r", "--resource"):
