@@ -544,7 +544,6 @@ class Host(object):
         return self.stats[type_name][dev_name][:, index]
 
 
-
 class Job(object):
     # TODO errors/comments
     __slots__ = ('id', 'start_time', 'end_time', 'acct', 'schemas', 'hosts',

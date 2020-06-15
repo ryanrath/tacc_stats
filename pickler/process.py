@@ -6,7 +6,6 @@ import account
 import summarize
 import sys
 import time
-import datetime
 from multiprocessing import Process
 import socket
 from getopt import getopt
@@ -19,6 +18,7 @@ from journal import Journal
 
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
+
 
 class RateCalculator:
     def __init__(self, procid):
@@ -199,6 +199,7 @@ def usage():
     print "  -q --quiet            only log errors"
     print "  -h --help             print this help message"
 
+
 def getoptions():
     """ process comandline options """
 
@@ -243,6 +244,7 @@ def getoptions():
 
     return retdata
 
+
 def main():
 
     warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)
@@ -273,5 +275,6 @@ def main():
 
     sys.exit(exit_code)
 
-if __name__ == '__main__': 
+
+if __name__ == '__main__':
     main()
