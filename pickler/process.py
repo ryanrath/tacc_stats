@@ -124,7 +124,7 @@ def createsummary(options, totalprocs, procid):
 
         processtimes = { "mintime": 2**64, "maxtime": 0 }
 
-        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'], options['large_jobs'])
+        dbreader = account.DbAcct( settings['resource_id'], dbconf, PROCESS_VERSION, totalprocs, procid, options['localjobid'], options['large_jobs'], options['small_jobs'])
 
         bacct = batch_acct.factory(settings['batch_system'], settings['acct_path'], settings['host_name_ext'] )
 
