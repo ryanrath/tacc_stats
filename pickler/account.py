@@ -135,9 +135,9 @@ class DbAcct(object):
             query += " ORDER BY end_time_ts ASC"
             return query, data
         else:
-            # We're going to be dealing with [small|large]_jobs, "small_jobs" are defined as having less then
-            # 10000 node hours while large jobs are > 10000 node hours. Since we need to be able to filter on node hours
-            # our sql is going to be slightly more complicated.
+            # We're going to be dealing with [small|large]_jobs, "small_jobs" are defined as jobs that ran < 24 hrs and
+            # have less then 200 nodes while large jobs are defined as any job that has run over 24 hours. Since we need 
+            # to be able to filter on nodes and wall time the sql is slightly more complicated.
 
             # This query is used to select the initial set of data from accountfact
             initial_data_query = """
