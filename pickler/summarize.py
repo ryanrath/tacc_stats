@@ -854,7 +854,7 @@ def summarize(j, lariatcache):
     # add hosts
     summaryDict['hosts'] = []
     for i in j.hosts.keys():
-        summaryDict['hosts'].append(i.encode('ascii', 'ignore') if type(i) == unicode else i)
+        summaryDict['hosts'].append(i)
 
     summaryDict['collection_sw'] = "tacc_stats " + " ".join(tacc_version)
 
