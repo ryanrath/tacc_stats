@@ -151,7 +151,7 @@ class DbAcct(object):
                                          AND af.resource_id = %s
                 """.format(self.tablename)
 
-            data = (self.resource_id, self.process_version)
+            data = (self.process_version, self.resource_id)
             if start_time is not None:
                 initial_data_query += " \t\t\t\t\t\t AND af.end_time_ts >= %s "
                 data = data + (start_time,)
