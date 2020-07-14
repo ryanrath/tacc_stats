@@ -12,12 +12,16 @@ from getopt import getopt
 import logging
 import output
 import os
+import re
 
 from scripthelpers import setuplogger
 from journal import Journal
 
 PROCESS_VERSION = 4
 ERROR_INCOMPLETE = -1001
+
+node_pattern = '(c\d{3}-\d{3})|(c\d{3}-\[(?:(?:(?:\d{3}-\d{3})|(?:\d{3})),?)+\])'
+node_prog = re.compile(node_pattern)
 
 
 class RateCalculator:
@@ -67,31 +71,31 @@ def construct_host_list(acct):
         hosts.append('None assigned')
         return hosts
 
-    # this covers the format: c105-[013-014,021-022,031-034,041,071-074,081]
-    if '[' in node_list and ']' in node_list:
-        left_bracket = node_list.find('[')
-        right_bracket = node_list.find(']')
+    matches = node_prog.findall(node_list)
+    hosts = []
+    for (single_node, node_range) in matches:
+        if single_node is not None and len(single_node) > 0:
+            hosts.append(single_node)
+        elif node_range is not None and len(node_range) > 0:
+            left_bracket = node_range.find('[')
+            right_bracket = node_range.find(']')
 
-        # everything to the left of the left bracket is the host
-        host = node_list[:left_bracket - 1]
+            # everything to the left of the left bracket is the host
+            host = node_range[:left_bracket - 1]
 
-        # everything between the brackets are the nodes
-        nodes = (node_list[left_bracket + 1:right_bracket]).split(',')
+            # everything between the brackets are the nodes
+            nodes = (node_range[left_bracket + 1:right_bracket]).split(',')
 
-        for node in nodes:
-
-            # if this is a range of nodes then we need to ensure there is one entry per value in the range.
-            if '-' in node:
-                delim_idx = node.find('-')
-                start = int(node[:delim_idx])
-                end = int(node[delim_idx + 1:])
-                for num in range(start, end + 1):
-                    hosts.append("%s-%s" % (host, num))
-            else:
-                hosts.append("%s-%s" % (host, node))
-    else:
-        hosts.append(node_list)
-
+            for node in nodes:
+                # if this is a rannge of nodes then we need to ensure there is one entry per value in the range.
+                if '-' in node:
+                    delim_idx = node.find('-')
+                    start = int(node[:delim_idx])
+                    end = int(node[delim_idx + 1:])
+                    for num in range(start, end + 1):
+                        hosts.append("%s-%.03d" % (host, num))
+                else:
+                    hosts.append("%s-%s" % (host, node))
     return hosts
 
 
