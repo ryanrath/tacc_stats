@@ -1,0 +1,32 @@
+{
+    "accountdatabase": {
+        "dbhost": "172.22.0.34",
+        "dbname": "ts_analysis",
+        "tablename": "accountfact",
+        "defaultsfile": "~/.my.cnf"
+    },
+    "outputdatabase": {
+        "dbtype": "mongodb",
+        "user": "xdtas",
+        "password": "+8dB5qU+2bcF1wx3pHc1ost7Vxz79taLzX0UKHvi0RM=",
+        "host": "172.22.0.34",
+        "authSource": "admin",
+        "dbname": "supremm"
+    },
+    "archivedatabase": {
+        "dbhost": "172.22.0.34",
+        "dbname": "modw_taccstats",
+        "defaultsfile": "~/.my.cnf"
+    },
+    "resources": {
+        "frontera": {
+            "enabled": true,
+            "resource_id": 1,
+            "acct_path": "/data/xms-frontera/accounting",
+            "tacc_stats_home": "/data/xms-frontera/performance",
+            "batch_system": "OpenXDMoDSlurm",
+            "host_name_ext": "frontera.tacc.utexas.edu",
+            "lariat_path": ""
+        }
+    }
+}
