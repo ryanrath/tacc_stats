@@ -12,7 +12,7 @@ from getopt import getopt
 import logging
 import output
 import os
-import re
+import re 
 
 from scripthelpers import setuplogger
 from journal import Journal
@@ -59,6 +59,10 @@ def construct_host_list(acct):
     {
         "node_list": "c105-[013-014,021-022,031-034,041,071-074,081]"
     }
+    but is also sometimes: 
+    {
+        "node_list": "c115-037,c105-[013-014,021-022,031-034,041,071-074,081]"
+    }
     """
     if 'node_list' not in acct:
         return
@@ -97,7 +101,6 @@ def construct_host_list(acct):
                 else:
                     hosts.append("%s-%s" % (host, node))
     return hosts
-
 
 def createsummary(options, totalprocs, procid):
 
